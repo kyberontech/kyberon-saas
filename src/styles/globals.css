@@ -1,0 +1,24 @@
+/* src/styles/globals.css
+   ─────────────────────────────────────────────────
+   Importa as fontes do Google e configura o Tailwind.
+   Adicione estilos globais aqui conforme o projeto crescer.
+   ───────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #0F2A4A; border-radius: 4px; }
+
+/* Fundo com grid futurístico */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
