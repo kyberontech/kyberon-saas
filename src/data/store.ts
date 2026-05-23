@@ -44,112 +44,6 @@ export const MOCK_USER: User = {
   email: 'admin@kyberon.io',
 }
 
-// ── Cards padrão (criados na tela de Configurações) ───────────────────────────
-/** 
-export const DEFAULT_CARDS: Card[] = [
-  {
-    id: 'card-1',
-    variableName: 'PH-1',
-    unit: ' ',
-    icon: 'activity',
-    value: 78.4,
-    alarmMax: 75,
-    alarmMin: null,
-    row: 1, col: 1,
-  },
-  {
-    id: 'card-2',
-    variableName: 'Condutividade-1',
-    unit: 'S/m',
-    icon: 'activity',
-    value: 3.8,
-    alarmMax: 6,
-    alarmMin: 1.5,
-    row: 1, col: 2,
-  },
-  {
-    id: 'card-3',
-    variableName: 'TDS-1',
-    unit: 'mg/L',
-    icon: 'droplets',
-    value: 62.1,
-    alarmMax: 90,
-    alarmMin: 10,
-    row: 1, col: 3,
-  },
-  {
-    id: 'card-4',
-    variableName: 'Temperatura-1',
-    unit: '°C',
-    icon: 'thermometer',
-    value: 14.7,
-    alarmMax: 20,
-    alarmMin: null,
-    row: 1, col: 4,
-  },
-  {
-    id: 'card-5',
-    variableName: 'Tensão Rede',
-    unit: 'V',
-    icon: 'activity',
-    value: 219.8,
-    alarmMax: 240,
-    alarmMin: 210,
-    row: 2, col: 1,
-  },
-  {
-    id: 'card-6',
-    variableName: 'Potência Ativa',
-    unit: 'kW',
-    icon: 'cpu',
-    value: 45.6,
-    alarmMax: 100,
-    alarmMin: null,
-    row: 2, col: 2,
-  },
-]
-*/
-
-// ── Alarmes simulados ─────────────────────────────────────────────────────────
-/**
-export const DEFAULT_ALARMS: AlarmEvent[] = [
-  {
-    id: 'alm-1',
-    cardId: 'card-1',
-    variableName: 'PH-1',
-    message: 'PH acima do limite máximo (78.4°C > 75°C)',
-    triggeredAt: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
-    acknowledgedAt: null,
-    acknowledgedBy: null,
-    status: 'ATIVO',
-  },
-  {
-    id: 'alm-2',
-    cardId: 'card-2',
-    variableName: 'Condutividade-1',
-    message: 'Condutividade abaixo do limite mínimo (1.2 S/m < 1.5 S/m)',
-    triggeredAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    acknowledgedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    acknowledgedBy: 'Admin Kyberon',
-    status: 'RECONHECIDO',
-  },
-]
-*/
-
-// ── Helpers: lê/salva no localStorage ────────────────────────────────────────
-// Futuramente: substituir por chamadas fetch() para sua API
-/**
-export function getCards(): Card[] {
-  if (typeof window === 'undefined') return DEFAULT_CARDS
-  try {
-    const stored = localStorage.getItem('ky_cards')
-    return stored ? JSON.parse(stored) : DEFAULT_CARDS
-  } catch {
-    return DEFAULT_CARDS
-  }
-}
-*/
-
 export function getCards(): Card[] {
   if (typeof window === 'undefined') return []
   try {
@@ -161,23 +55,10 @@ export function getCards(): Card[] {
 }
 
 
-
 export function saveCards(cards: Card[]): void {
   if (typeof window === 'undefined') return
   localStorage.setItem('ky_cards', JSON.stringify(cards))
 }
-
-/** 
-export function getAlarms(): AlarmEvent[] {
-  if (typeof window === 'undefined') return DEFAULT_ALARMS
-  try {
-    const stored = localStorage.getItem('ky_alarms')
-    return stored ? JSON.parse(stored) : DEFAULT_ALARMS
-  } catch {
-    return DEFAULT_ALARMS
-  }
-}
-*/
 
 export function getAlarms(): AlarmEvent[] {
   if (typeof window === 'undefined') return []
