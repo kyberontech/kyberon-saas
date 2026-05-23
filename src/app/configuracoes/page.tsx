@@ -125,26 +125,35 @@ export default function ConfiguracoesPage() {
 
       <main className="flex-1 overflow-y-auto pt-[52px] md:pt-0">
 
+        {/* Cabeçalho — só título, sem botões */}
         <header className="sticky top-0 z-10 bg-ky-panel/90 backdrop-blur border-b border-ky-border px-4 md:px-6 py-3 flex items-center gap-2">
           <Settings size={15} className="text-ky-primary"/>
           <h1 className="font-head font-bold text-base tracking-[2px] text-ky-primary uppercase">Configurações</h1>
-          <div className="flex-1"/>
-          <button onClick={addCard}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-head border border-ky-primary/40 text-ky-primary rounded-lg hover:bg-ky-primary/10 transition-colors">
-            <Plus size={12}/> <span className="hidden sm:inline">Adicionar Card</span><span className="sm:hidden">+</span>
-          </button>
-          <button onClick={handleSave}
-            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-head font-bold text-ky-bg rounded-lg transition-all"
-            style={{ background: saved ? '#00FFB3' : 'linear-gradient(135deg,#0057FF,#00C8FF)' }}>
-            <Save size={12}/> {saved ? 'Salvo!' : 'Salvar'}
-          </button>
         </header>
 
-        <div className="p-4 md:p-6">
+        <div className="p-4 md:p-6 flex flex-col gap-4">
 
-          <div className="bg-ky-primary/5 border border-ky-primary/20 rounded-xl px-4 py-3 mb-5 text-xs text-ky-muted leading-relaxed">
+          {/* ── Box "Como usar" ── */}
+          <div className="bg-ky-primary/5 border border-ky-primary/20 rounded-xl px-4 py-3 text-xs text-ky-muted leading-relaxed">
             <strong className="text-ky-primary">Como usar:</strong>{' '}
             Adicione cada variável que deseja monitorar no Dashboard. Preencha o nome, a unidade, escolha um ícone e defina os limites de alarme. Clique em <strong className="text-ky-primary">Salvar</strong> para aplicar.
+          </div>
+
+          {/* ── Botões de ação — sempre visíveis, largura total no mobile ── */}
+          <div className="flex gap-3">
+            <button
+              onClick={addCard}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-head border border-ky-primary/40 text-ky-primary rounded-lg hover:bg-ky-primary/10 transition-colors flex-1 sm:flex-none"
+            >
+              <Plus size={13}/> Adicionar Card
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-head font-bold text-ky-bg rounded-lg transition-all flex-1 sm:flex-none"
+              style={{ background: saved ? '#00FFB3' : 'linear-gradient(135deg,#0057FF,#00C8FF)' }}
+            >
+              <Save size={13}/> {saved ? 'Salvo!' : 'Salvar'}
+            </button>
           </div>
 
           {/* ── Mobile: cards empilhados ── */}
@@ -191,3 +200,4 @@ export default function ConfiguracoesPage() {
     </div>
   )
 }
+
