@@ -216,7 +216,7 @@ export default function ConfiguracoesPage() {
           {/* ── Instrução ── */}
           <div className="bg-ky-primary/5 border border-ky-primary/20 rounded-xl px-5 py-4 mb-5 text-xs text-ky-muted leading-relaxed">
             <strong className="text-ky-primary">Como usar:</strong>{' '}
-            Adicione cada variável que deseja monitorar no Dashboard. Preencha o nome, a unidade, escolha um ícone e defina os limites de alarme. Use <strong className="text-ky-text">Linha</strong> e <strong className="text-ky-text">Coluna</strong> para organizar a posição no grid. Clique em <strong className="text-ky-primary">Salvar</strong> para aplicar.
+            Adicione cada variável que deseja monitorar no Dashboard. Preencha o nome, a unidade, escolha um ícone e defina os limites de alarme. Clique em <strong className="text-ky-primary">Salvar</strong> para aplicar.
           </div>
 
           {/* ── Tabela de cards ── */}
