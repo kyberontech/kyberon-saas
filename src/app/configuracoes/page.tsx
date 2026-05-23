@@ -7,7 +7,6 @@
 // Cada card representa uma variável monitorada.
 // Tudo é salvo no localStorage (sem banco de dados por enquanto).
 // ─────────────────────────────────────────────────────────────────────────────
-
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { Settings, Plus, Trash2, Save } from 'lucide-react'
@@ -15,6 +14,7 @@ import {
   getCards, saveCards, isInAlarm,
   type Card,
 } from '@/data/store'
+
 
 // Ícones disponíveis para os cards
 // Adicione mais nomes de ícones do Lucide conforme precisar
@@ -123,28 +123,6 @@ function CardRow({
         />
       </td>
 
-      {/* Linha */}
-      <td className="px-3 py-2.5 w-24">
-        <input
-          type="number"
-          min={1}
-          className={inputCls}
-          value={card.row}
-          onChange={e => set('row', +e.target.value)}
-        />
-      </td>
-
-      {/* Coluna */}
-      <td className="px-3 py-2.5 w-24">
-        <input
-          type="number"
-          min={1}
-          max={4}
-          className={inputCls}
-          value={card.col}
-          onChange={e => set('col', +e.target.value)}
-        />
-      </td>
 
       {/* Excluir */}
       <td className="px-3 py-2.5 w-12 text-center">
@@ -181,6 +159,7 @@ export default function ConfiguracoesPage() {
     setCards(prev => prev.filter(c => c.id !== id))
     setSaved(false)
   }
+
 
   // Adiciona card vazio
   function addCard() {
@@ -251,9 +230,7 @@ export default function ConfiguracoesPage() {
                       'Unidade',
                       'Ícone',
                       'Alarme > (Máx)',
-                      'Alarme < (Mín)',
-                      'Linha',
-                      'Coluna',
+                      'Alarme < (Mín)',                      
                       '',
                     ].map(h => (
                       <th

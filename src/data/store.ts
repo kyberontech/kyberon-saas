@@ -45,7 +45,7 @@ export const MOCK_USER: User = {
 }
 
 // ── Cards padrão (criados na tela de Configurações) ───────────────────────────
-
+/** 
 export const DEFAULT_CARDS: Card[] = [
   {
     id: 'card-1',
@@ -108,9 +108,10 @@ export const DEFAULT_CARDS: Card[] = [
     row: 2, col: 2,
   },
 ]
-
+*/
 
 // ── Alarmes simulados ─────────────────────────────────────────────────────────
+/**
 export const DEFAULT_ALARMS: AlarmEvent[] = [
   {
     id: 'alm-1',
@@ -133,10 +134,11 @@ export const DEFAULT_ALARMS: AlarmEvent[] = [
     status: 'RECONHECIDO',
   },
 ]
+*/
 
 // ── Helpers: lê/salva no localStorage ────────────────────────────────────────
 // Futuramente: substituir por chamadas fetch() para sua API
-
+/**
 export function getCards(): Card[] {
   if (typeof window === 'undefined') return DEFAULT_CARDS
   try {
@@ -146,12 +148,26 @@ export function getCards(): Card[] {
     return DEFAULT_CARDS
   }
 }
+*/
+
+export function getCards(): Card[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const stored = localStorage.getItem('ky_cards')
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  } 
+}
+
+
 
 export function saveCards(cards: Card[]): void {
   if (typeof window === 'undefined') return
   localStorage.setItem('ky_cards', JSON.stringify(cards))
 }
 
+/** 
 export function getAlarms(): AlarmEvent[] {
   if (typeof window === 'undefined') return DEFAULT_ALARMS
   try {
@@ -161,11 +177,25 @@ export function getAlarms(): AlarmEvent[] {
     return DEFAULT_ALARMS
   }
 }
+*/
+
+export function getAlarms(): AlarmEvent[] {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const stored = localStorage.getItem('ky_alarms')
+    return stored ? JSON.parse(stored) : []
+  } catch {
+    return []
+  }
+}
+
 
 export function saveAlarms(alarms: AlarmEvent[]): void {
   if (typeof window === 'undefined') return
   localStorage.setItem('ky_alarms', JSON.stringify(alarms))
 }
+
 
 // ── Verifica se um card está em alarme ───────────────────────────────────────
 export function isInAlarm(card: Card): boolean {
