@@ -31,7 +31,7 @@ function VariableCard({ card }: { card: Card }) {
   return (
     <div
       className={`
-        relative bg-ky-panel border rounded-xl p-4 overflow-hidden
+        relative bg-ky-panel border rounded-xl p-3 md:p-4 overflow-hidden
         transition-all duration-200
         ${alarm ? 'border-ky-red animate-alarm-blink' : 'border-ky-border hover:border-ky-primary/30'}
       `}
@@ -41,19 +41,19 @@ function VariableCard({ card }: { card: Card }) {
         style={{ background: alarm ? '#FF3B3B' : 'linear-gradient(90deg,#0057FF,#00C8FF)' }}
       />
       <div className={`
-        w-8 h-8 rounded-lg flex items-center justify-center mb-3
+        w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center mb-2 md:mb-3
         ${alarm ? 'bg-ky-red/15 text-ky-red' : 'bg-ky-primary/10 text-ky-primary'}
       `}>
-        <Icon size={16}/>
+        <Icon size={14}/>
       </div>
-      <div className="flex items-baseline gap-1 mb-1">
-        <span className="font-head font-bold text-2xl text-ky-text">{card.value}</span>
-        <span className="text-xs text-ky-muted">{card.unit}</span>
+      <div className="flex items-baseline gap-1 mb-0.5">
+        <span className="font-head font-bold text-xl md:text-2xl text-ky-text">{card.value}</span>
+        <span className="text-[10px] md:text-xs text-ky-muted">{card.unit}</span>
       </div>
-      <p className="text-[10px] text-ky-muted uppercase tracking-wider">{card.variableName}</p>
+      <p className="text-[9px] md:text-[10px] text-ky-muted uppercase tracking-wider leading-tight">{card.variableName}</p>
       {alarm && (
-        <div className="mt-2 text-[9px] font-bold text-ky-red tracking-wider uppercase
-                        bg-ky-red/10 border border-ky-red/30 rounded px-2 py-1">
+        <div className="mt-1.5 text-[8px] md:text-[9px] font-bold text-ky-red tracking-wider uppercase
+                        bg-ky-red/10 border border-ky-red/30 rounded px-1.5 py-0.5">
           ⚠ {message}
         </div>
       )}
@@ -81,28 +81,28 @@ function ConfirmModal({
     >
       {/* Painel */}
       <div
-        className="bg-ky-panel border border-ky-border rounded-2xl p-6 max-w-sm w-full shadow-2xl"
+        className="bg-ky-panel border border-ky-border rounded-2xl p-4 md:p-6 max-w-xs w-full shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Ícone de alerta */}
-        <div className="w-12 h-12 rounded-full bg-ky-primary/10 border border-ky-primary/30 flex items-center justify-center mx-auto mb-4">
-          <Power size={22} className="text-ky-primary"/>
+        <div className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-ky-primary/10 border border-ky-primary/30 flex items-center justify-center mx-auto mb-3 md:mb-4">
+          <Power size={18} className="text-ky-primary"/>
         </div>
 
-        <h2 className="font-head font-bold text-base text-ky-text text-center mb-1 tracking-wide">
+        <h2 className="font-head font-bold text-sm md:text-base text-ky-text text-center mb-1 tracking-wide">
           Confirmar Comando
         </h2>
 
-        <p className="text-xs text-ky-muted text-center mb-2">
-          Deseja realmente executar este comando?
+        <p className="text-[10px] md:text-xs text-ky-muted text-center mb-2">
+          Deseja executar este comando?
         </p>
 
-        <div className="bg-ky-bg border border-ky-border rounded-lg px-3 py-2 text-center mb-5">
-          <span className="text-[10px] text-ky-muted uppercase tracking-widest block mb-0.5">
+        <div className="bg-ky-bg border border-ky-border rounded-lg px-2.5 py-1.5 text-center mb-3 md:mb-5">
+          <span className="text-[9px] md:text-[10px] text-ky-muted uppercase tracking-widest block mb-0.5">
             {cardName}
           </span>
           <span
-            className={`text-sm font-head font-bold tracking-widest ${
+            className={`text-xs md:text-sm font-head font-bold tracking-widest ${
               nextState ? 'text-ky-green' : 'text-ky-red'
             }`}
           >
@@ -110,17 +110,17 @@ function ConfirmModal({
           </span>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2 md:gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2.5 text-xs font-head border border-ky-border text-ky-muted
+            className="flex-1 px-3 py-2 text-[10px] md:text-xs font-head border border-ky-border text-ky-muted
                        rounded-lg hover:bg-white/5 transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
-            className={`flex-1 px-4 py-2.5 text-xs font-head font-bold text-ky-bg rounded-lg
+            className={`flex-1 px-3 py-2 text-[10px] md:text-xs font-head font-bold text-ky-bg rounded-lg
                         transition-all ${nextState
                           ? 'bg-ky-green hover:brightness-110'
                           : 'bg-ky-red   hover:brightness-110'
@@ -155,7 +155,7 @@ function CommandCard({
     <>
       <div
         className={`
-          relative bg-ky-panel border rounded-xl p-4 overflow-hidden
+          relative bg-ky-panel border rounded-xl p-3 md:p-4 overflow-hidden
           transition-all duration-200 cursor-pointer select-none
           ${isOn
             ? 'border-ky-green/60 hover:border-ky-green'
@@ -174,16 +174,16 @@ function CommandCard({
 
         {/* Ícone */}
         <div className={`
-          w-8 h-8 rounded-lg flex items-center justify-center mb-3 transition-colors duration-300
+          w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center mb-2 md:mb-3 transition-colors duration-300
           ${isOn ? 'bg-ky-green/15 text-ky-green' : 'bg-ky-red/15 text-ky-red'}
         `}>
-          <Icon size={16}/>
+          <Icon size={14}/>
         </div>
 
         {/* Badge de estado */}
         <div className="flex items-center gap-1.5 mb-1">
           <span className={`
-            inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-head font-bold
+            inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-head font-bold
             tracking-widest border transition-all duration-300
             ${isOn
               ? 'bg-ky-green/15 text-ky-green border-ky-green/40'
@@ -196,10 +196,10 @@ function CommandCard({
         </div>
 
         {/* Nome */}
-        <p className="text-[10px] text-ky-muted uppercase tracking-wider">{card.variableName}</p>
+        <p className="text-[9px] md:text-[10px] text-ky-muted uppercase tracking-wider leading-tight">{card.variableName}</p>
 
         {/* Hint de interação */}
-        <p className="text-[9px] text-ky-muted/50 mt-1.5">Clique para alterar</p>
+        <p className="text-[8px] md:text-[9px] text-ky-muted/50 mt-1">Clique para alterar</p>
       </div>
 
       {showModal && (
@@ -275,7 +275,7 @@ export default function DashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
               {cards.map(card =>
                 card.type === 'comando'
                   ? <CommandCard key={card.id} card={card} onToggle={handleToggle}/>
