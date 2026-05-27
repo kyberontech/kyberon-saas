@@ -1,10 +1,10 @@
 'use client'
-// src/app/configuracoes/page.tsx — com responsividade mobile
+// src/app/configuracoes/page.tsx
 
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { Settings, Plus, Trash2, Save } from 'lucide-react'
-import { getCards, saveCards, type Card } from '@/data/store'
+import { getCards, saveCards, type Card, type CardType } from '@/data/store'
 
 const ICONES_DISPONIVEIS = [
   { value: 'thermometer', label: '🌡  Temperatura'        },
@@ -20,7 +20,19 @@ const ICONES_DISPONIVEIS = [
 ]
 
 function newCard(): Card {
-  return { id: `card-${Date.now()}`, variableName: '', unit: '', icon: 'activity', value: 0, alarmMax: null, alarmMin: null, row: 1, col: 1 }
+  return {
+    id: `card-${Date.now()}`,
+    type: 'leitura',          // padrão: leitura
+    variableName: '',
+    unit: '',
+    icon: 'activity',
+    value: 0,
+    alarmMax: null,
+    alarmMin: null,
+    row: 1,
+    col: 1,
+    commandState: false,      // pré-inicializado para evitar undefined
+  }
 }
 
 const inputCls = `
@@ -28,45 +40,101 @@ const inputCls = `
   text-xs text-ky-text outline-none focus:border-ky-primary/50 w-full
 `
 
+// Badge visual do tipo de card
+function TypeBadge({ type }: { type: CardType }) {
+  return type === 'comando' ? (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-head font-bold
+                     tracking-widest bg-ky-green/10 text-ky-green border border-ky-green/30">
+      ⚡ COMANDO
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-head font-bold
+                     tracking-widest bg-ky-primary/10 text-ky-primary border border-ky-primary/30">
+      📊 LEITURA
+    </span>
+  )
+}
+
 // ── Card de configuração mobile ──────────────────────────────────────────────
 function CardMobile({ card, onChange, onDelete }: { card: Card; onChange: (c: Card) => void; onDelete: () => void }) {
   function set<K extends keyof Card>(field: K, value: Card[K]) { onChange({ ...card, [field]: value }) }
+
+  const isComando = card.type === 'comando'
+
   return (
     <div className="bg-ky-panel border border-ky-border rounded-xl p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-ky-primary font-head tracking-widest uppercase">Card</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-ky-primary font-head tracking-widest uppercase">Card</span>
+          <TypeBadge type={card.type}/>
+        </div>
         <button onClick={onDelete} className="text-ky-muted hover:text-ky-red transition-colors p-1">
           <Trash2 size={14}/>
         </button>
       </div>
+
+      {/* ── Seletor de tipo ── */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-[10px] text-ky-muted uppercase tracking-widest">Tipo do Card</label>
+        <select
+          className={inputCls}
+          value={card.type}
+          onChange={e => set('type', e.target.value as CardType)}
+        >
+          <option value="leitura">📊 Leitura (somente monitoramento)</option>
+          <option value="comando">⚡ Comando (ON / OFF)</option>
+        </select>
+      </div>
+
       <div className="flex flex-col gap-1.5">
         <label className="text-[10px] text-ky-muted uppercase tracking-widest">Nome da Variável</label>
-        <input className={inputCls} placeholder="Ex: Temperatura Entrada" value={card.variableName} onChange={e => set('variableName', e.target.value)}/>
+        <input
+          className={inputCls}
+          placeholder={isComando ? 'Ex: Bomba Principal' : 'Ex: Temperatura Entrada'}
+          value={card.variableName}
+          onChange={e => set('variableName', e.target.value)}
+        />
       </div>
+
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] text-ky-muted uppercase tracking-widest">Unidade</label>
-          <input className={inputCls} placeholder="°C" value={card.unit} onChange={e => set('unit', e.target.value)}/>
-        </div>
-        <div className="flex flex-col gap-1.5">
+        {/* Unidade: oculta em cards de comando */}
+        {!isComando && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] text-ky-muted uppercase tracking-widest">Unidade</label>
+            <input className={inputCls} placeholder="°C" value={card.unit} onChange={e => set('unit', e.target.value)}/>
+          </div>
+        )}
+        <div className={`flex flex-col gap-1.5 ${isComando ? 'col-span-2' : ''}`}>
           <label className="text-[10px] text-ky-muted uppercase tracking-widest">Ícone</label>
           <select className={inputCls} value={card.icon} onChange={e => set('icon', e.target.value)}>
             {ICONES_DISPONIVEIS.map(ic => <option key={ic.value} value={ic.value}>{ic.label}</option>)}
           </select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] text-ky-muted uppercase tracking-widest">Alarme Máx</label>
-          <input type="number" className={inputCls} placeholder="—" value={card.alarmMax ?? ''}
-            onChange={e => set('alarmMax', e.target.value === '' ? null : +e.target.value)}/>
+
+      {/* Alarmes: só para cards de leitura */}
+      {!isComando && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] text-ky-muted uppercase tracking-widest">Alarme Máx</label>
+            <input type="number" className={inputCls} placeholder="—" value={card.alarmMax ?? ''}
+              onChange={e => set('alarmMax', e.target.value === '' ? null : +e.target.value)}/>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] text-ky-muted uppercase tracking-widest">Alarme Mín</label>
+            <input type="number" className={inputCls} placeholder="—" value={card.alarmMin ?? ''}
+              onChange={e => set('alarmMin', e.target.value === '' ? null : +e.target.value)}/>
+          </div>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] text-ky-muted uppercase tracking-widest">Alarme Mín</label>
-          <input type="number" className={inputCls} placeholder="—" value={card.alarmMin ?? ''}
-            onChange={e => set('alarmMin', e.target.value === '' ? null : +e.target.value)}/>
+      )}
+
+      {/* Info visual para comando */}
+      {isComando && (
+        <div className="bg-ky-green/5 border border-ky-green/20 rounded-lg px-3 py-2 text-[10px] text-ky-muted">
+          Este card será exibido como um botão <strong className="text-ky-green">ON/OFF</strong> no Dashboard.
+          Uma confirmação será solicitada ao acionar.
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -74,27 +142,77 @@ function CardMobile({ card, onChange, onDelete }: { card: Card; onChange: (c: Ca
 // ── Linha na tabela desktop ──────────────────────────────────────────────────
 function CardRow({ card, onChange, onDelete }: { card: Card; onChange: (c: Card) => void; onDelete: () => void }) {
   function set<K extends keyof Card>(field: K, value: Card[K]) { onChange({ ...card, [field]: value }) }
+
+  const isComando = card.type === 'comando'
+
   return (
     <tr className="border-b border-ky-border/30 hover:bg-white/[0.02] transition-colors">
+
+      {/* Tipo */}
+      <td className="px-3 py-2.5 w-52">
+        <select
+          className={inputCls}
+          value={card.type}
+          onChange={e => set('type', e.target.value as CardType)}
+        >
+          <option value="leitura">📊 Leitura</option>
+          <option value="comando">⚡ Comando (ON/OFF)</option>
+        </select>
+      </td>
+
+      {/* Nome */}
       <td className="px-3 py-2.5">
-        <input className={inputCls} placeholder="Ex: Temperatura Entrada" value={card.variableName} onChange={e => set('variableName', e.target.value)}/>
+        <input
+          className={inputCls}
+          placeholder={isComando ? 'Ex: Bomba Principal' : 'Ex: Temperatura Entrada'}
+          value={card.variableName}
+          onChange={e => set('variableName', e.target.value)}
+        />
       </td>
+
+      {/* Unidade: vazia e desabilitada para comandos */}
       <td className="px-3 py-2.5 w-24">
-        <input className={inputCls} placeholder="°C" value={card.unit} onChange={e => set('unit', e.target.value)}/>
+        <input
+          className={`${inputCls} ${isComando ? 'opacity-30 cursor-not-allowed' : ''}`}
+          placeholder="°C"
+          value={isComando ? '—' : card.unit}
+          disabled={isComando}
+          onChange={e => set('unit', e.target.value)}
+        />
       </td>
+
+      {/* Ícone */}
       <td className="px-3 py-2.5 w-44">
         <select className={inputCls} value={card.icon} onChange={e => set('icon', e.target.value)}>
           {ICONES_DISPONIVEIS.map(ic => <option key={ic.value} value={ic.value}>{ic.label}</option>)}
         </select>
       </td>
+
+      {/* Alarme Máx */}
       <td className="px-3 py-2.5 w-28">
-        <input type="number" className={inputCls} placeholder="—" value={card.alarmMax ?? ''}
-          onChange={e => set('alarmMax', e.target.value === '' ? null : +e.target.value)}/>
+        <input
+          type="number"
+          className={`${inputCls} ${isComando ? 'opacity-30 cursor-not-allowed' : ''}`}
+          placeholder="—"
+          value={isComando ? '' : (card.alarmMax ?? '')}
+          disabled={isComando}
+          onChange={e => set('alarmMax', e.target.value === '' ? null : +e.target.value)}
+        />
       </td>
+
+      {/* Alarme Mín */}
       <td className="px-3 py-2.5 w-28">
-        <input type="number" className={inputCls} placeholder="—" value={card.alarmMin ?? ''}
-          onChange={e => set('alarmMin', e.target.value === '' ? null : +e.target.value)}/>
+        <input
+          type="number"
+          className={`${inputCls} ${isComando ? 'opacity-30 cursor-not-allowed' : ''}`}
+          placeholder="—"
+          value={isComando ? '' : (card.alarmMin ?? '')}
+          disabled={isComando}
+          onChange={e => set('alarmMin', e.target.value === '' ? null : +e.target.value)}
+        />
       </td>
+
+      {/* Excluir */}
       <td className="px-3 py-2.5 w-12 text-center">
         <button onClick={onDelete} className="text-ky-muted hover:text-ky-red transition-colors p-1 rounded">
           <Trash2 size={13}/>
@@ -104,6 +222,7 @@ function CardRow({ card, onChange, onDelete }: { card: Card; onChange: (c: Card)
   )
 }
 
+// ── Página de Configurações ───────────────────────────────────────────────────
 export default function ConfiguracoesPage() {
   const [cards, setCards] = useState<Card[]>([])
   const [saved, setSaved] = useState(false)
@@ -125,7 +244,6 @@ export default function ConfiguracoesPage() {
 
       <main className="flex-1 overflow-y-auto pt-[52px] md:pt-0">
 
-        {/* Cabeçalho — só título, sem botões */}
         <header className="sticky top-0 z-10 bg-ky-panel/90 backdrop-blur border-b border-ky-border px-4 md:px-6 py-3 flex items-center gap-2">
           <Settings size={15} className="text-ky-primary"/>
           <h1 className="font-head font-bold text-base tracking-[2px] text-ky-primary uppercase">Configurações</h1>
@@ -136,10 +254,12 @@ export default function ConfiguracoesPage() {
           {/* ── Box "Como usar" ── */}
           <div className="bg-ky-primary/5 border border-ky-primary/20 rounded-xl px-4 py-3 text-xs text-ky-muted leading-relaxed">
             <strong className="text-ky-primary">Como usar:</strong>{' '}
-            Adicione cada variável que deseja monitorar no Dashboard. Preencha o nome, a unidade, escolha um ícone e defina os limites de alarme. Clique em <strong className="text-ky-primary">Salvar</strong> para aplicar.
+            Adicione cards do tipo <strong className="text-ky-primary">Leitura</strong> para monitorar variáveis,
+            ou <strong className="text-ky-green">Comando (ON/OFF)</strong> para acionar equipamentos com confirmação.
+            Clique em <strong className="text-ky-primary">Salvar</strong> para aplicar.
           </div>
 
-          {/* ── Botões de ação — sempre visíveis, largura total no mobile ── */}
+          {/* ── Botões de ação ── */}
           <div className="flex gap-3">
             <button
               onClick={addCard}
@@ -175,7 +295,7 @@ export default function ConfiguracoesPage() {
               <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr className="bg-ky-bg/50">
-                    {['Nome da Variável','Unidade','Ícone','Alarme > (Máx)','Alarme < (Mín)',''].map(h => (
+                    {['Tipo','Nome da Variável','Unidade','Ícone','Alarme > (Máx)','Alarme < (Mín)',''].map(h => (
                       <th key={h} className="px-3 py-3 text-left text-ky-primary font-head tracking-widest text-[10px] uppercase border-b border-ky-border">{h}</th>
                     ))}
                   </tr>
@@ -185,7 +305,7 @@ export default function ConfiguracoesPage() {
                     <CardRow key={card.id} card={card} onChange={updateCard} onDelete={() => deleteCard(card.id)}/>
                   ))}
                   {cards.length === 0 && (
-                    <tr><td colSpan={6} className="px-4 py-10 text-center text-ky-muted">
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-ky-muted">
                       Nenhum card cadastrado.{' '}
                       <button onClick={addCard} className="text-ky-primary underline">Adicionar o primeiro card.</button>
                     </td></tr>
@@ -200,4 +320,3 @@ export default function ConfiguracoesPage() {
     </div>
   )
 }
-
