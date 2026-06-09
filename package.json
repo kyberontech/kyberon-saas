@@ -13,7 +13,12 @@
     "react-dom": "^18.3.0",
     "lucide-react": "^0.383.0",
     "recharts": "^2.12.7",
+<<<<<<< HEAD
     "date-fns": "^3.6.0"
+=======
+    "date-fns": "^3.6.0",
+    "mqtt": "^5.10.1"
+>>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
   },
   "devDependencies": {
     "@types/node": "^20",
