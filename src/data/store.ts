@@ -10,14 +10,9 @@ export type CardType = 'leitura' | 'comando'
 
 export type Card = {
   id: string
-<<<<<<< HEAD
-  type: CardType        // ← NOVO: distingue leitura vs comando
-  variableName: string
-=======
   type: CardType        // ← distingue leitura vs comando
   variableName: string
   mqttTopic: string     // ← tópico MQTT do CLP (broker)
->>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
   unit: string
   icon: string
   value: number
@@ -57,13 +52,8 @@ export function getCards(): Card[] {
     const stored = localStorage.getItem('ky_cards')
     if (!stored) return []
     const cards: Card[] = JSON.parse(stored)
-<<<<<<< HEAD
-    // Garante retrocompatibilidade: cards antigos sem 'type' viram 'leitura'
-    return cards.map(c => ({ ...c, type: c.type ?? 'leitura' }))
-=======
     // Garante retrocompatibilidade: cards antigos sem 'type' viram 'leitura'; sem 'mqttTopic' ficam vazio
     return cards.map(c => ({ ...c, type: c.type ?? 'leitura', mqttTopic: c.mqttTopic ?? '' }))
->>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
   } catch {
     return []
   }

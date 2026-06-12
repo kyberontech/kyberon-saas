@@ -22,14 +22,9 @@ const ICONES_DISPONIVEIS = [
 function newCard(): Card {
   return {
     id: `card-${Date.now()}`,
-<<<<<<< HEAD
-    type: 'leitura',          // padrão: leitura
-    variableName: '',
-=======
     type: 'leitura',
     variableName: '',
     mqttTopic: '',        // ex: planta/sensor1/temperatura
->>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
     unit: '',
     icon: 'activity',
     value: 0,
@@ -37,11 +32,7 @@ function newCard(): Card {
     alarmMin: null,
     row: 1,
     col: 1,
-<<<<<<< HEAD
-    commandState: false,      // pré-inicializado para evitar undefined
-=======
     commandState: false,
->>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
   }
 }
 
@@ -105,8 +96,6 @@ function CardMobile({ card, onChange, onDelete }: { card: Card; onChange: (c: Ca
         />
       </div>
 
-<<<<<<< HEAD
-=======
       {/* ── Tópico MQTT ── */}
       <div className="flex flex-col gap-1">
         <label className="text-[9px] text-ky-muted uppercase tracking-widest flex items-center gap-1">
@@ -123,7 +112,6 @@ function CardMobile({ card, onChange, onDelete }: { card: Card; onChange: (c: Ca
         </span>
       </div>
 
->>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
       <div className="grid grid-cols-2 gap-2">
         {!isComando && (
           <div className="flex flex-col gap-1">
@@ -196,8 +184,6 @@ function CardRow({ card, onChange, onDelete }: { card: Card; onChange: (c: Card)
         />
       </td>
 
-<<<<<<< HEAD
-=======
       {/* Tópico MQTT */}
       <td className="px-3 py-2.5">
         <input
@@ -208,7 +194,6 @@ function CardRow({ card, onChange, onDelete }: { card: Card; onChange: (c: Card)
         />
       </td>
 
->>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
       {/* Unidade: vazia e desabilitada para comandos */}
       <td className="px-3 py-2.5 w-24">
         <input
@@ -273,10 +258,7 @@ export default function ConfiguracoesPage() {
   function addCard() { setCards(prev => [...prev, newCard()]); setSaved(false) }
   function handleSave() {
     if (cards.find(c => !c.variableName.trim())) { alert('Preencha o nome de todas as variáveis antes de salvar.'); return }
-<<<<<<< HEAD
-=======
     if (cards.find(c => !c.mqttTopic.trim())) { alert('Preencha o Tópico MQTT de todos os cards antes de salvar.'); return }
->>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
     saveCards(cards); setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -299,10 +281,7 @@ export default function ConfiguracoesPage() {
             <strong className="text-ky-primary">Como usar:</strong>{' '}
             Adicione cards do tipo <strong className="text-ky-primary">Leitura</strong> para monitorar variáveis,
             ou <strong className="text-ky-green">Comando (ON/OFF)</strong> para acionar equipamentos.
-<<<<<<< HEAD
-=======
             Informe o <strong className="text-ky-primary">Tópico MQTT</strong> publicado pelo CLP no broker — o valor recebido nesse tópico será vinculado ao card automaticamente.
->>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
             Clique em <strong className="text-ky-primary">Salvar</strong> para aplicar.
           </div>
 
@@ -342,11 +321,7 @@ export default function ConfiguracoesPage() {
               <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr className="bg-ky-bg/50">
-<<<<<<< HEAD
-                    {['Tipo','Nome da Variável','Unidade','Ícone','Alarme > (Máx)','Alarme < (Mín)',''].map(h => (
-=======
                     {['Tipo','Nome da Variável','Tópico MQTT','Unidade','Ícone','Alarme > (Máx)','Alarme < (Mín)',''].map(h => (
->>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
                       <th key={h} className="px-3 py-3 text-left text-ky-primary font-head tracking-widest text-[10px] uppercase border-b border-ky-border">{h}</th>
                     ))}
                   </tr>
@@ -356,11 +331,7 @@ export default function ConfiguracoesPage() {
                     <CardRow key={card.id} card={card} onChange={updateCard} onDelete={() => deleteCard(card.id)}/>
                   ))}
                   {cards.length === 0 && (
-<<<<<<< HEAD
-                    <tr><td colSpan={7} className="px-4 py-10 text-center text-ky-muted">
-=======
                     <tr><td colSpan={8} className="px-4 py-10 text-center text-ky-muted">
->>>>>>> efb9c7e (Inserido configuração de tópico e condição para teste no vercel com clp)
                       Nenhum card cadastrado.{' '}
                       <button onClick={addCard} className="text-ky-primary underline">Adicionar o primeiro card.</button>
                     </td></tr>

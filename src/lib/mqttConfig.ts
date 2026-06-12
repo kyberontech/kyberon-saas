@@ -12,15 +12,19 @@
 //  Porta padrão WebSocket do Mosquitto: 9001
 //  Sem TLS: ws://  |  Com TLS: wss://
 
-//export const MQTT_BROKER_URL = 'ws://localhost:9001/mqtt'
-//export const MQTT_BROKER_URL = 'wss://broker.emqx.io:8083/mqtt'   // ← altere aqui
+// Broker EMQX rodando na sua VPS Hostinger (72.60.240.153)
+//  - Em produção (https), o Caddy faz proxy reverso com SSL automático:
+//      wss://mqtt.72-60-240-153.nip.io  ->  localhost:8083 (EMQX, sem TLS)
+//  - Em desenvolvimento local (http), conecta direto na porta 8083 da VPS
 
 export const MQTT_BROKER_URL = typeof window !== 'undefined' && window.location.protocol === 'https:'
-  ? 'wss://broker.emqx.io:8084/mqtt'   // Vercel
-  : 'ws://broker.emqx.io:8083/mqtt'    // localhost
+  ? 'wss://mqtt.devsystem.cloud/mqtt'   // produção (https) - via EasyPanel com SSL
+  : 'ws://72.60.240.153:8083/mqtt'      // desenvolvimento local (http)
 
 
 // ── Credenciais ────────────────────────────────────────────────────
+// Deixe em branco se a autenticação anônima estiver habilitada no EMQX (padrão).
+// Se você criar um usuário no EMQX (Access Control > Authentication), preencha aqui.
 export const MQTT_USERNAME = ''//'clpuser'
 export const MQTT_PASSWORD = ''//'Clpsenha1'   // ← altere aqui
 
