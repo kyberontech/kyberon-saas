@@ -13,6 +13,7 @@ export function KtgLogo({ size = 64, className }: KtgLogoProps) {
       width={size}
       height={size}
       className={className}
+      style={{ width: size, height: size }}
       priority
     />
   );

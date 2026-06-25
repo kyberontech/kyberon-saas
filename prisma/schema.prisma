@@ -1,0 +1,118 @@
+// prisma/schema.prisma
+// ─────────────────────────────────────────────────────────────────────────────
+// Para migrar para VPS (PostgreSQL):
+//   1. Altere provider para "postgresql"
+//   2. Altere DATABASE_URL no .env para postgresql://...
+//   3. Execute: npx prisma migrate deploy
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Tenant (Cliente/Grupo) ────────────────────────────────────────────────────
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  users       User[]
+  cards       Card[]
+  alarmEvents AlarmEvent[]
+  logs        Log[]
+  readings    Reading[]
+}
+
+// ── User ─────────────────────────────────────────────────────────────────────
+// tenantId é NULL para o SUPER_ADMIN (pertence à plataforma, não a um grupo)
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("USUARIO") // SUPER_ADMIN | ADMINISTRADOR | SUPERVISOR | USUARIO
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  logs Log[]
+}
+
+// ── Card (configuração por tenant) ───────────────────────────────────────────
+model Card {
+  id           String  @id @default(cuid())
+  type         String  @default("leitura") // leitura | comando
+  variableName String
+  mqttTopic    String  @default("")
+  unit         String  @default("")
+  icon         String  @default("activity")
+  alarmMax     Float?
+  alarmMin     Float?
+  row          Int     @default(1)
+  col          Int     @default(1)
+  commandState Boolean @default(false)
+  sortOrder    Int     @default(0)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+// ── AlarmEvent ───────────────────────────────────────────────────────────────
+model AlarmEvent {
+  id             String    @id @default(cuid())
+  cardId         String
+  variableName   String
+  message        String
+  triggeredAt    DateTime  @default(now())
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+  status         String    @default("ATIVO") // ATIVO | RECONHECIDO
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, status])
+}
+
+// ── Reading (histórico de leituras MQTT por variável) ────────────────────────
+model Reading {
+  id        String   @id @default(cuid())
+  cardId    String
+  value     Float
+  unit      String   @default("")
+  timestamp DateTime @default(now())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, cardId, timestamp])
+}
+
+// ── Log ──────────────────────────────────────────────────────────────────────
+// tenantId é NULL para ações do SUPER_ADMIN
+model Log {
+  id        String   @id @default(cuid())
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+}
