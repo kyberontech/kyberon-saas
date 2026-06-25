@@ -116,3 +116,4 @@ model Log {
 
   @@index([tenantId])
 }
+"# postgresql" 
