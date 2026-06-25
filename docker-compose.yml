@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    image: node:20-alpine
+    container_name: kyberon-saas
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: sh -c "npm install && npm run build && npm start"
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Adicione suas variáveis de ambiente abaixo:
+      # DATABASE_URL=postgresql://user:password@host:5432/db
+    restart: unless-stopped
