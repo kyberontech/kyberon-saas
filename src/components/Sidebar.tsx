@@ -19,8 +19,8 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { href: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard                              },
-  { href: '/alarmes',       label: 'Alarmes',        icon: Bell,    roles: ['ADMINISTRADOR','SUPERVISOR'] },
-  { href: '/relatorios',    label: 'Relatórios',     icon: BarChart2, roles: ['ADMINISTRADOR','SUPERVISOR'] },
+  { href: '/alarmes',       label: 'Alarmes',        icon: Bell,    roles: ['ADMINISTRADOR','SUPERVISOR','USUARIO'] },
+  { href: '/relatorios',    label: 'Relatórios',     icon: BarChart2, roles: ['ADMINISTRADOR','SUPERVISOR','USUARIO'] },
   { href: '/configuracoes', label: 'Configurações',  icon: Settings,  roles: ['ADMINISTRADOR','SUPERVISOR'] },
   { href: '/usuarios',      label: 'Usuários',       icon: Users,     roles: ['ADMINISTRADOR']              },
   { href: '/logs',          label: 'Logs',           icon: FileText,  roles: ['ADMINISTRADOR']              },

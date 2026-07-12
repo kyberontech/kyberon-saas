@@ -2,7 +2,7 @@
 // src/app/usuarios/page.tsx — cadastro e gestão de usuários (admin)
 import { useEffect, useState } from 'react'
 import Sidebar from '@/components/Sidebar'
-import { Users, Plus, Edit2, ToggleLeft, ToggleRight, X, Eye, EyeOff, Key } from 'lucide-react'
+import { Users, Plus, Edit2, ToggleLeft, ToggleRight, X, Eye, EyeOff, Key, Trash2 } from 'lucide-react'
 
 type UserRow = {
   id:        string
@@ -163,6 +163,17 @@ export default function UsuariosPage() {
     load()
   }
 
+  async function deleteUser(user: UserRow) {
+    if (!confirm(`Excluir definitivamente o usuário "${user.name}"? Esta ação não pode ser desfeita.`)) return
+    const res = await fetch(`/api/usuarios/${user.id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? 'Erro ao excluir usuário.')
+      return
+    }
+    load()
+  }
+
   const ROLE_COLOR: Record<string, string> = {
     ADMINISTRADOR: 'text-ky-primary border-ky-primary/40 bg-ky-primary/10',
     SUPERVISOR:    'text-ky-green  border-ky-green/40  bg-ky-green/10',
@@ -215,6 +226,9 @@ export default function UsuariosPage() {
                   <button onClick={() => toggleActive(user)} className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-head border rounded-md transition-colors flex-1 justify-center ${user.active ? 'border-ky-red/40 text-ky-red hover:bg-ky-red/10' : 'border-ky-green/40 text-ky-green hover:bg-ky-green/10'}`}>
                     {user.active ? <><ToggleRight size={11}/> Desativar</> : <><ToggleLeft size={11}/> Reativar</>}
                   </button>
+                  <button onClick={() => deleteUser(user)} title="Excluir usuário" className="flex items-center justify-center px-2.5 py-1.5 text-[10px] font-head border border-ky-red/40 text-ky-red rounded-md hover:bg-ky-red/10 transition-colors">
+                    <Trash2 size={11}/>
+                  </button>
                 </div>
               </div>
             ))}
@@ -258,6 +272,9 @@ export default function UsuariosPage() {
                         </button>
                         <button onClick={() => toggleActive(user)} className={`flex items-center gap-1 px-2 py-1 text-[10px] font-head border rounded transition-colors ${user.active ? 'border-ky-red/40 text-ky-red hover:bg-ky-red/10' : 'border-ky-green/40 text-ky-green hover:bg-ky-green/10'}`}>
                           {user.active ? <><ToggleRight size={10}/> Desativar</> : <><ToggleLeft size={10}/> Reativar</>}
+                        </button>
+                        <button onClick={() => deleteUser(user)} title="Excluir usuário" className="flex items-center justify-center px-2 py-1 text-[10px] font-head border border-ky-red/40 text-ky-red rounded hover:bg-ky-red/10 transition-colors">
+                          <Trash2 size={10}/>
                         </button>
                       </div>
                     </td>

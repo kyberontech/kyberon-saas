@@ -54,7 +54,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json(updated)
 }
 
-// Soft-delete: desativa o usuário (nunca exclui do banco)
+// Exclui definitivamente o usuário (e seu histórico de logs) do banco
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireSession()
   if (auth instanceof NextResponse) return auth
@@ -63,7 +63,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   }
 
   if (params.id === auth.user.id) {
-    return NextResponse.json({ error: 'Não é possível desativar a própria conta' }, { status: 400 })
+    return NextResponse.json({ error: 'Não é possível excluir a própria conta' }, { status: 400 })
   }
 
   const target = await prisma.user.findFirst({
@@ -71,12 +71,15 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   })
   if (!target) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
 
-  await prisma.user.update({ where: { id: params.id }, data: { active: false } })
+  await prisma.$transaction([
+    prisma.log.deleteMany({ where: { userId: params.id } }),
+    prisma.user.delete({ where: { id: params.id } }),
+  ])
 
   await prisma.log.create({
     data: {
-      action:   'USER_DEACTIVATED',
-      detail:   `Usuário ${target.email} desativado`,
+      action:   'USER_DELETED',
+      detail:   `Usuário ${target.email} excluído`,
       tenantId: auth.user.tenantId,
       userId:   auth.user.id,
     },

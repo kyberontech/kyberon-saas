@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const ADMIN_ONLY    = ['/usuarios', '/logs']
-const SUPERVISOR_UP = ['/configuracoes', '/alarmes', '/relatorios']
+const SUPERVISOR_UP = ['/configuracoes']
 
 export async function middleware(request: NextRequest) {
   const token      = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // ── Rotas para ADMINISTRADOR e SUPERVISOR ──────────────────────────────────
+  // ── Rotas exclusivas para ADMINISTRADOR e SUPERVISOR ────────────────────────
   if (SUPERVISOR_UP.some(r => pathname.startsWith(r)) && role === 'USUARIO') {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }

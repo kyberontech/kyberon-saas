@@ -58,3 +58,33 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   return NextResponse.json({ ok: true })
 }
+
+// DELETE — exclui definitivamente o grupo e todos os dados vinculados
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireSession()
+  if (auth instanceof NextResponse) return auth
+  if (!isSuperAdmin(auth.user.role)) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+
+  const tenant = await prisma.tenant.findUnique({ where: { id: params.id } })
+  if (!tenant) return NextResponse.json({ error: 'Grupo não encontrado' }, { status: 404 })
+
+  await prisma.$transaction(async (tx) => {
+    await tx.reading.deleteMany({ where: { tenantId: params.id } })
+    await tx.alarmEvent.deleteMany({ where: { tenantId: params.id } })
+    await tx.card.deleteMany({ where: { tenantId: params.id } })
+    await tx.log.deleteMany({ where: { user: { tenantId: params.id } } })
+    await tx.user.deleteMany({ where: { tenantId: params.id } })
+    await tx.tenant.delete({ where: { id: params.id } })
+  })
+
+  await prisma.log.create({
+    data: {
+      action:   'GROUP_DELETED',
+      detail:   `Grupo "${tenant.name}" excluído`,
+      userId:   auth.user.id,
+      tenantId: null,
+    },
+  })
+
+  return NextResponse.json({ ok: true })
+}
