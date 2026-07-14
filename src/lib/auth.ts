@@ -62,6 +62,5 @@ export const authOptions: NextAuthOptions = {
   },
 
   pages:  { signIn: '/login' },
-  //secret: process.env.NEXTAUTH_SECRET,
-  secret: process.env.NEXTAUTH_SECRET ?? 'kyberon_super_secret_2026_xJ9mK2pL',
+  secret: process.env.NEXTAUTH_SECRET,
 }

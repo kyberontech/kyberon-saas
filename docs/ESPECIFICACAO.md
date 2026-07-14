@@ -157,11 +157,7 @@ Todas as rotas usam `requireSession()` (NextAuth) e escopam consultas por `tenan
    - Qualquer pessoa assinar tópicos e ler todos os dados em trânsito.
    - Tentativa de acesso ao **dashboard administrativo do EMQX** (`:18083`) direto da internet — se a senha padrão não tiver sido trocada, é acesso administrativo total ao broker.
 3. **ACL do EMQX nunca customizada** — `acl.conf` está no template padrão de instalação, terminando em `{allow, {security_profile, legacy}}`, que **permite tudo** (publish/subscribe em qualquer tópico) no perfil legacy (padrão em versões < 6.3).
-4. **Segredo de sessão com fallback hardcoded** (`src/lib/auth.ts:66`):
-   ```ts
-   secret: process.env.NEXTAUTH_SECRET ?? 'kyberon_super_secret_2026_xJ9mK2pL',
-   ```
-   Se a variável de ambiente `NEXTAUTH_SECRET` não estiver definida no ambiente de produção, a aplicação usa um segredo fixo, público neste repositório — permitindo forjar tokens JWT de sessão (personificar qualquer usuário, inclusive SUPER_ADMIN) caso alguém tenha acesso ao código-fonte.
+4. ~~**Segredo de sessão com fallback hardcoded**~~ — **Corrigido em 2026-07-13** (`src/lib/auth.ts`): o fallback `?? 'kyberon_super_secret_2026_xJ9mK2pL'` foi removido; `secret` agora usa apenas `process.env.NEXTAUTH_SECRET`. Isso significa que **`NEXTAUTH_SECRET` passa a ser obrigatória** — sem ela definida no ambiente, o NextAuth não terá segredo de assinatura válido para os tokens JWT. Confirme que a variável está configurada na VPS/EasyPanel antes do deploy.
 
 ### 🟠 Alto
 
