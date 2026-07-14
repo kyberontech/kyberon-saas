@@ -18,6 +18,8 @@ const ICONES_DISPONIVEIS = [
   { value: 'wind',        label: '🌬  Vento / Fluxo'       },
   { value: 'sun',         label: '☀  Irradiação'           },
   { value: 'waves',       label: '🌊 Ondas / Vibração'     },
+  { value: 'estado',      label: '🟢 Estado (ON/OFF)'      },
+  { value: 'escrita',     label: '✏️  Escrita de Valor'    },
 ]
 
 function newCard(): Card {
@@ -34,22 +36,30 @@ function newCard(): Card {
     row: 1,
     col: 1,
     commandState: false,
+    writeValue: 0,
   }
 }
 
 const inputCls = `bg-ky-bg border border-ky-border rounded-md px-2 py-1.5 text-xs text-ky-text outline-none focus:border-ky-primary/50 w-full`
 
 function TypeBadge({ type }: { type: CardType }) {
-  return type === 'comando' ? (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-head font-bold tracking-widest bg-ky-green/10 text-ky-green border border-ky-green/30">⚡ COMANDO</span>
-  ) : (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-head font-bold tracking-widest bg-ky-primary/10 text-ky-primary border border-ky-primary/30">📊 LEITURA</span>
-  )
+  if (type === 'comando') {
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-head font-bold tracking-widest bg-ky-green/10 text-ky-green border border-ky-green/30">⚡ COMANDO</span>
+  }
+  if (type === 'leitura_estado') {
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-head font-bold tracking-widest bg-ky-primary/10 text-ky-primary border border-ky-primary/30">🟢 LEITURA ESTADO</span>
+  }
+  if (type === 'escrita_valor') {
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-head font-bold tracking-widest bg-ky-green/10 text-ky-green border border-ky-green/30">✏️ ESCRITA VALOR</span>
+  }
+  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-head font-bold tracking-widest bg-ky-primary/10 text-ky-primary border border-ky-primary/30">📊 LEITURA</span>
 }
 
 function CardMobile({ card, onChange, onDelete }: { card: Card; onChange: (c: Card) => void; onDelete: () => void }) {
   function set<K extends keyof Card>(field: K, value: Card[K]) { onChange({ ...card, [field]: value }) }
   const isComando = card.type === 'comando'
+  const isEstado  = card.type === 'leitura_estado'
+  const isEscrita = card.type === 'escrita_valor'
   return (
     <div className="bg-ky-panel border border-ky-border rounded-xl p-3 flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
@@ -60,32 +70,34 @@ function CardMobile({ card, onChange, onDelete }: { card: Card; onChange: (c: Ca
         <label className="text-[9px] text-ky-muted uppercase tracking-widest">Tipo</label>
         <select className={inputCls} value={card.type} onChange={e => set('type', e.target.value as CardType)}>
           <option value="leitura">📊 Leitura</option>
+          <option value="leitura_estado">🟢 Leitura Estado (ON/OFF)</option>
           <option value="comando">⚡ Comando (ON/OFF)</option>
+          <option value="escrita_valor">✏️ Escrita de Valor</option>
         </select>
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-[9px] text-ky-muted uppercase tracking-widest">Nome da Variável</label>
-        <input className={inputCls} placeholder={isComando ? 'Ex: Bomba Principal' : 'Ex: Temperatura'} value={card.variableName} onChange={e => set('variableName', e.target.value)}/>
+        <input className={inputCls} placeholder={isComando ? 'Ex: Bomba Principal' : isEstado ? 'Ex: Status Bomba' : isEscrita ? 'Ex: Setpoint Temperatura' : 'Ex: Temperatura'} value={card.variableName} onChange={e => set('variableName', e.target.value)}/>
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-[9px] text-ky-muted uppercase tracking-widest flex items-center gap-1"><span className="text-ky-primary">⬡</span> Tópico MQTT</label>
         <input className={inputCls} placeholder="Ex: planta/sensor1/temperatura" value={card.mqttTopic} onChange={e => set('mqttTopic', e.target.value)}/>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        {!isComando && (
+        {!isComando && !isEstado && (
           <div className="flex flex-col gap-1">
             <label className="text-[9px] text-ky-muted uppercase tracking-widest">Unidade</label>
             <input className={inputCls} placeholder="°C" value={card.unit} onChange={e => set('unit', e.target.value)}/>
           </div>
         )}
-        <div className={`flex flex-col gap-1 ${isComando ? 'col-span-2' : ''}`}>
+        <div className={`flex flex-col gap-1 ${(isComando || isEstado) ? 'col-span-2' : ''}`}>
           <label className="text-[9px] text-ky-muted uppercase tracking-widest">Ícone</label>
           <select className={inputCls} value={card.icon} onChange={e => set('icon', e.target.value)}>
             {ICONES_DISPONIVEIS.map(ic => <option key={ic.value} value={ic.value}>{ic.label}</option>)}
           </select>
         </div>
       </div>
-      {!isComando && (
+      {!isComando && !isEstado && !isEscrita && (
         <div className="grid grid-cols-2 gap-2">
           <div className="flex flex-col gap-1">
             <label className="text-[9px] text-ky-muted uppercase tracking-widest">Alarme Máx</label>
@@ -98,29 +110,37 @@ function CardMobile({ card, onChange, onDelete }: { card: Card; onChange: (c: Ca
         </div>
       )}
       {isComando && <div className="bg-ky-green/5 border border-ky-green/20 rounded-lg px-2.5 py-1.5 text-[9px] text-ky-muted leading-relaxed">Será exibido como botão <strong className="text-ky-green">ON/OFF</strong> no Dashboard.</div>}
+      {isEstado && <div className="bg-ky-primary/5 border border-ky-primary/20 rounded-lg px-2.5 py-1.5 text-[9px] text-ky-muted leading-relaxed">Recebe <strong className="text-ky-text">0</strong> ou <strong className="text-ky-text">1</strong> via MQTT. Exibido com contorno <strong className="text-ky-green">verde (1/ON)</strong> ou <strong className="text-ky-red">vermelho (0/OFF)</strong> no Dashboard.</div>}
+      {isEscrita && <div className="bg-ky-green/5 border border-ky-green/20 rounded-lg px-2.5 py-1.5 text-[9px] text-ky-muted leading-relaxed">Permite digitar um valor <strong className="text-ky-green">numérico (inteiro ou real)</strong> e publicá-lo no Tópico MQTT.</div>}
     </div>
   )
 }
 
 function CardRow({ card, onChange, onDelete }: { card: Card; onChange: (c: Card) => void; onDelete: () => void }) {
   function set<K extends keyof Card>(field: K, value: Card[K]) { onChange({ ...card, [field]: value }) }
-  const isComando = card.type === 'comando'
+  const isComando  = card.type === 'comando'
+  const isEstado   = card.type === 'leitura_estado'
+  const isEscrita  = card.type === 'escrita_valor'
+  const hideUnit   = isComando || isEstado
+  const hideAlarms = isComando || isEstado || isEscrita
   return (
     <tr className="border-b border-ky-border/30 hover:bg-white/[0.02] transition-colors">
       <td className="px-3 py-2.5 w-52">
         <select className={inputCls} value={card.type} onChange={e => set('type', e.target.value as CardType)}>
           <option value="leitura">📊 Leitura</option>
+          <option value="leitura_estado">🟢 Leitura Estado (ON/OFF)</option>
           <option value="comando">⚡ Comando (ON/OFF)</option>
+          <option value="escrita_valor">✏️ Escrita de Valor</option>
         </select>
       </td>
       <td className="px-3 py-2.5">
-        <input className={inputCls} placeholder={isComando ? 'Ex: Bomba Principal' : 'Ex: Temperatura Entrada'} value={card.variableName} onChange={e => set('variableName', e.target.value)}/>
+        <input className={inputCls} placeholder={isComando ? 'Ex: Bomba Principal' : isEstado ? 'Ex: Status Bomba' : isEscrita ? 'Ex: Setpoint Temperatura' : 'Ex: Temperatura Entrada'} value={card.variableName} onChange={e => set('variableName', e.target.value)}/>
       </td>
       <td className="px-3 py-2.5">
         <input className={inputCls} placeholder="Ex: planta/sensor1/temp" value={card.mqttTopic} onChange={e => set('mqttTopic', e.target.value)}/>
       </td>
       <td className="px-3 py-2.5 w-24">
-        <input className={`${inputCls} ${isComando ? 'opacity-30 cursor-not-allowed' : ''}`} placeholder="°C" value={isComando ? '—' : card.unit} disabled={isComando} onChange={e => set('unit', e.target.value)}/>
+        <input className={`${inputCls} ${hideUnit ? 'opacity-30 cursor-not-allowed' : ''}`} placeholder="°C" value={hideUnit ? '—' : card.unit} disabled={hideUnit} onChange={e => set('unit', e.target.value)}/>
       </td>
       <td className="px-3 py-2.5 w-44">
         <select className={inputCls} value={card.icon} onChange={e => set('icon', e.target.value)}>
@@ -128,10 +148,10 @@ function CardRow({ card, onChange, onDelete }: { card: Card; onChange: (c: Card)
         </select>
       </td>
       <td className="px-3 py-2.5 w-28">
-        <input type="number" className={`${inputCls} ${isComando ? 'opacity-30 cursor-not-allowed' : ''}`} placeholder="—" value={isComando ? '' : (card.alarmMax ?? '')} disabled={isComando} onChange={e => set('alarmMax', e.target.value === '' ? null : +e.target.value)}/>
+        <input type="number" className={`${inputCls} ${hideAlarms ? 'opacity-30 cursor-not-allowed' : ''}`} placeholder="—" value={hideAlarms ? '' : (card.alarmMax ?? '')} disabled={hideAlarms} onChange={e => set('alarmMax', e.target.value === '' ? null : +e.target.value)}/>
       </td>
       <td className="px-3 py-2.5 w-28">
-        <input type="number" className={`${inputCls} ${isComando ? 'opacity-30 cursor-not-allowed' : ''}`} placeholder="—" value={isComando ? '' : (card.alarmMin ?? '')} disabled={isComando} onChange={e => set('alarmMin', e.target.value === '' ? null : +e.target.value)}/>
+        <input type="number" className={`${inputCls} ${hideAlarms ? 'opacity-30 cursor-not-allowed' : ''}`} placeholder="—" value={hideAlarms ? '' : (card.alarmMin ?? '')} disabled={hideAlarms} onChange={e => set('alarmMin', e.target.value === '' ? null : +e.target.value)}/>
       </td>
       <td className="px-3 py-2.5 w-12 text-center">
         <button onClick={onDelete} className="text-ky-muted hover:text-ky-red transition-colors p-1 rounded"><Trash2 size={13}/></button>
@@ -192,7 +212,7 @@ export default function ConfiguracoesPage() {
         </header>
         <div className="p-4 md:p-6 flex flex-col gap-4">
           <div className="bg-ky-primary/5 border border-ky-primary/20 rounded-xl px-3 py-2.5 text-[10px] md:text-xs text-ky-muted leading-relaxed">
-            <strong className="text-ky-primary">Como usar:</strong> Adicione cards do tipo <strong className="text-ky-primary">Leitura</strong> para monitorar variáveis ou <strong className="text-ky-green">Comando (ON/OFF)</strong> para acionar equipamentos. Informe o <strong className="text-ky-primary">Tópico MQTT</strong> publicado pelo CLP. Clique em <strong className="text-ky-primary">Salvar</strong> para aplicar a todos os usuários do cliente.
+            <strong className="text-ky-primary">Como usar:</strong> Adicione cards do tipo <strong className="text-ky-primary">Leitura</strong> para monitorar variáveis, <strong className="text-ky-primary">Leitura Estado (ON/OFF)</strong> para exibir um status recebido via MQTT (0/1) com contorno vermelho/verde, <strong className="text-ky-green">Comando (ON/OFF)</strong> para acionar equipamentos, ou <strong className="text-ky-green">Escrita de Valor</strong> para enviar um número (inteiro ou real) ao CLP. Informe o <strong className="text-ky-primary">Tópico MQTT</strong> publicado/assinado pelo CLP. Clique em <strong className="text-ky-primary">Salvar</strong> para aplicar a todos os usuários do cliente.
           </div>
           <div className="flex gap-2">
             <button onClick={addCard} className="flex items-center justify-center gap-1 px-3 py-2 text-[10px] md:text-xs font-head border border-ky-primary/40 text-ky-primary rounded-lg hover:bg-ky-primary/10 transition-colors flex-1 sm:flex-none">

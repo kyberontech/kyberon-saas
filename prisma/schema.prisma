@@ -51,7 +51,7 @@ model User {
 // ── Card (configuração por tenant) ───────────────────────────────────────────
 model Card {
   id           String  @id @default(cuid())
-  type         String  @default("leitura") // leitura | comando
+  type         String  @default("leitura") // leitura | comando | leitura_estado | escrita_valor
   variableName String
   mqttTopic    String  @default("")
   unit         String  @default("")
@@ -61,6 +61,7 @@ model Card {
   row          Int     @default(1)
   col          Int     @default(1)
   commandState Boolean @default(false)
+  writeValue   Float   @default(0)
   sortOrder    Int     @default(0)
 
   tenantId String

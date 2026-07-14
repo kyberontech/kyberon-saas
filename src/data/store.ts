@@ -3,7 +3,7 @@
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-export type CardType = 'leitura' | 'comando'
+export type CardType = 'leitura' | 'comando' | 'leitura_estado' | 'escrita_valor'
 
 export type Card = {
   id:           string
@@ -18,6 +18,7 @@ export type Card = {
   row:          number
   col:          number
   commandState?: boolean
+  writeValue?:   number
 }
 
 export type AlarmEvent = {
@@ -43,7 +44,7 @@ export type User = {
 // ── Utilitários de alarme (usados no Dashboard em tempo real) ─────────────────
 
 export function isInAlarm(card: Card): boolean {
-  if (card.type === 'comando') return false
+  if (card.type === 'comando' || card.type === 'leitura_estado' || card.type === 'escrita_valor') return false
   if (card.alarmMax !== null && card.value > card.alarmMax) return true
   if (card.alarmMin !== null && card.value < card.alarmMin) return true
   return false

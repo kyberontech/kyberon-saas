@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
         row:          c.row          ?? 1,
         col:          c.col          ?? 1,
         commandState: c.commandState ?? false,
+        writeValue:   c.writeValue   ?? 0,
         sortOrder:    i,
         tenantId:     auth.user.tenantId,
       })),

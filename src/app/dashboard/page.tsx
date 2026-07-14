@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import Sidebar from '@/components/Sidebar'
 import {
   Thermometer, Gauge, Droplets, Zap, Activity,
-  Cpu, Power, Wind, Sun, Waves, Wifi, WifiOff, RefreshCw, AlertTriangle,
+  Cpu, Power, PowerOff, Wind, Sun, Waves, Wifi, WifiOff, RefreshCw, AlertTriangle, PenLine,
 } from 'lucide-react'
 import { isInAlarm, alarmMessage, type Card } from '@/data/store'
 import { useMqtt, type MqttStatus } from '@/lib/mqttClient'
@@ -13,7 +13,7 @@ import { useMqtt, type MqttStatus } from '@/lib/mqttClient'
 const ICON_MAP: Record<string, React.ElementType> = {
   thermometer: Thermometer, gauge: Gauge, droplets: Droplets,
   zap: Zap, activity: Activity, cpu: Cpu, power: Power,
-  wind: Wind, sun: Sun, waves: Waves,
+  wind: Wind, sun: Sun, waves: Waves, estado: Power, escrita: PenLine,
 }
 
 function MqttStatusBadge({ status }: { status: MqttStatus }) {
@@ -71,6 +71,31 @@ function VariableCard({ card, mqttConnected }: { card: Card; mqttConnected: bool
       {card.mqttTopic && <p className="text-[8px] text-ky-muted/40 font-mono mt-0.5 truncate">⬡ {card.mqttTopic}</p>}
       {mqttConnected && !card.mqttTopic && <p className="text-[8px] text-yellow-500/70 mt-0.5">⚠ sem tópico MQTT</p>}
       {alarm && <div className="mt-1.5 text-[8px] md:text-[9px] font-bold text-ky-red tracking-wider uppercase bg-ky-red/10 border border-ky-red/30 rounded px-1.5 py-0.5">⚠ {msg}</div>}
+    </div>
+  )
+}
+
+function EstadoCard({ card }: { card: Card }) {
+  const isOn = card.value === 1
+  const Icon = isOn ? Power : PowerOff
+  return (
+    <div
+      className={`relative bg-ky-panel border rounded-xl p-3 md:p-4 overflow-hidden transition-all duration-200
+        ${isOn ? 'border-ky-green/60' : 'border-ky-red/50'}`}
+      aria-label={`Estado ${card.variableName}: ${isOn ? 'ON' : 'OFF'}`}
+    >
+      <div className="absolute top-0 left-0 right-0 h-0.5 transition-all duration-300" style={{ background: isOn ? '#00FFB3' : '#FF3B3B' }}/>
+      <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center mb-2 md:mb-3 transition-colors duration-300 ${isOn ? 'bg-ky-green/15 text-ky-green' : 'bg-ky-red/15 text-ky-red'}`}>
+        <Icon size={14}/>
+      </div>
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-head font-bold tracking-widest border transition-all duration-300 ${isOn ? 'bg-ky-green/15 text-ky-green border-ky-green/40' : 'bg-ky-red/15 text-ky-red border-ky-red/40'}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${isOn ? 'bg-ky-green animate-dot-pulse' : 'bg-ky-red'}`}/>
+          {isOn ? 'ON' : 'OFF'}
+        </span>
+      </div>
+      <p className="text-[9px] md:text-[10px] text-ky-muted uppercase tracking-wider leading-tight">{card.variableName}</p>
+      {card.mqttTopic && <p className="text-[8px] text-ky-muted/40 font-mono mt-0.5 truncate">⬡ {card.mqttTopic}</p>}
     </div>
   )
 }
@@ -139,6 +164,76 @@ function CommandCard({ card, onToggle, canCommand }: { card: Card; onToggle: (id
   )
 }
 
+function WriteValueModal({ cardName, unit, initialValue, onConfirm, onCancel }: { cardName: string; unit: string; initialValue: number; onConfirm: (value: number) => void; onCancel: () => void }) {
+  const [text, setText] = useState(String(initialValue))
+  const parsed = parseFloat(text.replace(',', '.'))
+  const valid  = text.trim() !== '' && Number.isFinite(parsed)
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4" onClick={onCancel}>
+      <div className="bg-ky-panel border border-ky-border rounded-2xl p-4 md:p-6 max-w-xs w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-ky-green/10 border border-ky-green/30 flex items-center justify-center mx-auto mb-3 md:mb-4">
+          <PenLine size={18} className="text-ky-green"/>
+        </div>
+        <h2 className="font-head font-bold text-sm md:text-base text-ky-text text-center mb-1 tracking-wide">Escrever Valor</h2>
+        <p className="text-[10px] md:text-xs text-ky-muted text-center mb-2">{cardName}</p>
+        <div className="flex items-center gap-2 mb-3 md:mb-5">
+          <input
+            type="text"
+            inputMode="decimal"
+            autoFocus
+            className="bg-ky-bg border border-ky-border rounded-lg px-2.5 py-2 text-sm text-ky-text outline-none focus:border-ky-green/50 w-full text-center font-head font-bold"
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && valid) onConfirm(parsed) }}
+          />
+          {unit && <span className="text-xs text-ky-muted whitespace-nowrap">{unit}</span>}
+        </div>
+        <div className="flex gap-2 md:gap-3">
+          <button onClick={onCancel} className="flex-1 px-3 py-2 text-[10px] md:text-xs font-head border border-ky-border text-ky-muted rounded-lg hover:bg-white/5 transition-colors">Cancelar</button>
+          <button onClick={() => valid && onConfirm(parsed)} disabled={!valid} className="flex-1 px-3 py-2 text-[10px] md:text-xs font-head font-bold text-ky-bg rounded-lg transition-all bg-ky-green hover:brightness-110 disabled:opacity-40 disabled:pointer-events-none">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function WriteValueCard({ card, onWrite, canCommand }: { card: Card; onWrite: (id: string, value: number) => void; canCommand: boolean }) {
+  const [showModal, setShowModal] = useState(false)
+  const Icon = ICON_MAP[card.icon] ?? PenLine
+  return (
+    <>
+      <div
+        className={`relative bg-ky-panel border rounded-xl p-3 md:p-4 overflow-hidden transition-all duration-200 select-none border-ky-border
+          ${canCommand ? 'cursor-pointer hover:border-ky-green/40' : 'cursor-default opacity-80'}`}
+        onClick={() => canCommand && setShowModal(true)}
+        role={canCommand ? 'button' : undefined}
+        aria-label={`Escrita ${card.variableName}: ${card.writeValue ?? 0}`}
+      >
+        <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(90deg,#00FFB3,#00C8FF)' }}/>
+        <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center mb-2 md:mb-3 bg-ky-green/15 text-ky-green">
+          <Icon size={14}/>
+        </div>
+        <div className="flex items-baseline gap-1 mb-0.5">
+          <span className="font-head font-bold text-xl md:text-2xl text-ky-text">{card.writeValue ?? 0}</span>
+          <span className="text-[10px] md:text-xs text-ky-muted">{card.unit}</span>
+        </div>
+        <p className="text-[9px] md:text-[10px] text-ky-muted uppercase tracking-wider leading-tight">{card.variableName}</p>
+        {card.mqttTopic && <p className="text-[8px] text-ky-muted/40 font-mono mt-0.5 truncate">⬡ {card.mqttTopic}</p>}
+        {canCommand && <p className="text-[8px] md:text-[9px] text-ky-muted/50 mt-1">Clique para escrever</p>}
+      </div>
+      {showModal && (
+        <WriteValueModal
+          cardName={card.variableName}
+          unit={card.unit}
+          initialValue={card.writeValue ?? 0}
+          onConfirm={(value) => { setShowModal(false); onWrite(card.id, value) }}
+          onCancel={() => setShowModal(false)}
+        />
+      )}
+    </>
+  )
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession()
   const [cards, setCards]   = useState<Card[]>([])
@@ -181,7 +276,7 @@ export default function DashboardPage() {
     const value  = isNaN(parsed) ? 0 : parsed
     setCards(prev => prev.map(c => c.id === cardId ? { ...c, value } : c))
     if (!isNaN(parsed)) {
-      const card = cardsRef.current.find(c => c.id === cardId && c.type === 'leitura')
+      const card = cardsRef.current.find(c => c.id === cardId && (c.type === 'leitura' || c.type === 'leitura_estado'))
       if (card) {
         fetch('/api/leituras', {
           method:  'POST',
@@ -192,7 +287,7 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const { status: mqttStatus, publishCommand } = useMqtt(cards, handleMqttMessage)
+  const { status: mqttStatus, publishCommand, publishValue } = useMqtt(cards, handleMqttMessage)
 
   const handleToggle = useCallback((cardId: string) => {
     setCards(prev => {
@@ -208,6 +303,20 @@ export default function DashboardPage() {
       return prev.map(c => c.id === cardId ? { ...c, commandState: nextState } : c)
     })
   }, [publishCommand])
+
+  const handleWriteValue = useCallback((cardId: string, value: number) => {
+    setCards(prev => {
+      const card = prev.find(c => c.id === cardId)
+      if (!card) return prev
+      publishValue(card, value)
+      fetch(`/api/cards/${cardId}/write`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ writeValue: value }),
+      }).catch(console.error)
+      return prev.map(c => c.id === cardId ? { ...c, writeValue: value } : c)
+    })
+  }, [publishValue])
 
   const alarmsCount   = cards.filter(isInAlarm).length
   const mqttConnected = mqttStatus === 'connected'
@@ -238,6 +347,10 @@ export default function DashboardPage() {
               {cards.map(card =>
                 card.type === 'comando'
                   ? <CommandCard key={card.id} card={card} onToggle={handleToggle} canCommand={canCommand}/>
+                  : card.type === 'leitura_estado'
+                  ? <EstadoCard key={card.id} card={card}/>
+                  : card.type === 'escrita_valor'
+                  ? <WriteValueCard key={card.id} card={card} onWrite={handleWriteValue} canCommand={canCommand}/>
                   : <VariableCard key={card.id} card={card} mqttConnected={mqttConnected}/>
               )}
             </div>

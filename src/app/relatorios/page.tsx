@@ -35,7 +35,7 @@ export default function RelatoriosPage() {
     fetch('/api/cards')
       .then(r => r.ok ? r.json() : [])
       .then(data => {
-        const leituras = (Array.isArray(data) ? data : []).filter((c: Card) => c.type === 'leitura')
+        const leituras = (Array.isArray(data) ? data : []).filter((c: Card) => c.type === 'leitura' || c.type === 'leitura_estado')
         setCards(leituras)
         if (leituras.length > 0) setSelected(leituras[0].id)
       })

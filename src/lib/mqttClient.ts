@@ -47,6 +47,8 @@ export interface UseMqttReturn {
   status: MqttStatus
   /** Publica o estado ON/OFF de um card de Comando no seu tópico */
   publishCommand: (card: Card, nextState: boolean) => void
+  /** Publica um valor numérico de um card de Escrita Valor no seu tópico */
+  publishValue: (card: Card, value: number) => void
 }
 
 // ── Hook principal ────────────────────────────────────────────────
@@ -175,7 +177,29 @@ export function useMqtt(
     })
   }, [])
 
-  return { status, publishCommand }
+  // ── Publicar valor numérico (Escrita Valor) ─────────────────────
+  const publishValue = useCallback((card: Card, value: number) => {
+    const client = clientRef.current
+    if (!client || !client.connected) {
+      console.warn('[MQTT] Não conectado — publish ignorado')
+      return
+    }
+    if (!card.mqttTopic) {
+      console.warn('[MQTT] Card sem tópico MQTT configurado:', card.variableName)
+      return
+    }
+
+    const payload = String(value)
+    client.publish(card.mqttTopic, payload, { qos: MQTT_PUBLISH_QOS }, (err) => {
+      if (err) {
+        console.error('[MQTT] Erro ao publicar:', err.message)
+      } else {
+        console.log(`[MQTT] Publicado → ${card.mqttTopic}: "${payload}"`)
+      }
+    })
+  }, [])
+
+  return { status, publishCommand, publishValue }
 }
 
 // ── Utilitário interno ────────────────────────────────────────────

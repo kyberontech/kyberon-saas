@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Card" ADD COLUMN     "writeValue" DOUBLE PRECISION NOT NULL DEFAULT 0;
