@@ -7,7 +7,7 @@ import {
   Thermometer, Gauge, Droplets, Zap, Activity,
   Cpu, Power, PowerOff, Wind, Sun, Waves, Wifi, WifiOff, RefreshCw, AlertTriangle, PenLine,
 } from 'lucide-react'
-import { isInAlarm, alarmMessage, type Card } from '@/data/store'
+import { isInAlarm, alarmMessage, parseBooleanState, type Card } from '@/data/store'
 import { useMqtt, type MqttStatus } from '@/lib/mqttClient'
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -124,18 +124,19 @@ function ConfirmModal({ cardName, nextState, onConfirm, onCancel }: { cardName: 
   )
 }
 
-function CommandCard({ card, onToggle, canCommand }: { card: Card; onToggle: (id: string) => void; canCommand: boolean }) {
+function CommandCard({ card, onToggle, canCommand, mqttConnected }: { card: Card; onToggle: (id: string) => void; canCommand: boolean; mqttConnected: boolean }) {
   const [showModal, setShowModal] = useState(false)
-  const isOn    = card.commandState === true
-  const Icon    = ICON_MAP[card.icon] ?? Power
+  const isOn      = card.commandState === true
+  const Icon      = ICON_MAP[card.icon] ?? Power
+  const clickable = canCommand && mqttConnected
   return (
     <>
       <div
         className={`relative bg-ky-panel border rounded-xl p-3 md:p-4 overflow-hidden transition-all duration-200 select-none
-          ${canCommand ? 'cursor-pointer' : 'cursor-default opacity-80'}
+          ${clickable ? 'cursor-pointer' : 'cursor-default opacity-80'}
           ${isOn ? 'border-ky-green/60 hover:border-ky-green' : 'border-ky-red/50 hover:border-ky-red'}`}
-        onClick={() => canCommand && setShowModal(true)}
-        role={canCommand ? 'button' : undefined}
+        onClick={() => clickable && setShowModal(true)}
+        role={clickable ? 'button' : undefined}
         aria-label={`Comando ${card.variableName}: ${isOn ? 'ON' : 'OFF'}`}
       >
         <div className="absolute top-0 left-0 right-0 h-0.5 transition-all duration-300" style={{ background: isOn ? '#00FFB3' : '#FF3B3B' }}/>
@@ -150,7 +151,11 @@ function CommandCard({ card, onToggle, canCommand }: { card: Card; onToggle: (id
         </div>
         <p className="text-[9px] md:text-[10px] text-ky-muted uppercase tracking-wider leading-tight">{card.variableName}</p>
         {card.mqttTopic && <p className="text-[8px] text-ky-muted/40 font-mono mt-0.5 truncate">⬡ {card.mqttTopic}</p>}
-        {canCommand && <p className="text-[8px] md:text-[9px] text-ky-muted/50 mt-1">Clique para alterar</p>}
+        {canCommand && (
+          <p className={`text-[8px] md:text-[9px] mt-1 ${mqttConnected ? 'text-ky-muted/50' : 'text-yellow-500/70'}`}>
+            {mqttConnected ? 'Clique para alterar' : '⚠ MQTT desconectado'}
+          </p>
+        )}
       </div>
       {showModal && (
         <ConfirmModal
@@ -197,16 +202,17 @@ function WriteValueModal({ cardName, unit, initialValue, onConfirm, onCancel }: 
   )
 }
 
-function WriteValueCard({ card, onWrite, canCommand }: { card: Card; onWrite: (id: string, value: number) => void; canCommand: boolean }) {
+function WriteValueCard({ card, onWrite, canCommand, mqttConnected }: { card: Card; onWrite: (id: string, value: number) => void; canCommand: boolean; mqttConnected: boolean }) {
   const [showModal, setShowModal] = useState(false)
-  const Icon = ICON_MAP[card.icon] ?? PenLine
+  const Icon      = ICON_MAP[card.icon] ?? PenLine
+  const clickable = canCommand && mqttConnected
   return (
     <>
       <div
         className={`relative bg-ky-panel border rounded-xl p-3 md:p-4 overflow-hidden transition-all duration-200 select-none border-ky-border
-          ${canCommand ? 'cursor-pointer hover:border-ky-green/40' : 'cursor-default opacity-80'}`}
-        onClick={() => canCommand && setShowModal(true)}
-        role={canCommand ? 'button' : undefined}
+          ${clickable ? 'cursor-pointer hover:border-ky-green/40' : 'cursor-default opacity-80'}`}
+        onClick={() => clickable && setShowModal(true)}
+        role={clickable ? 'button' : undefined}
         aria-label={`Escrita ${card.variableName}: ${card.writeValue ?? 0}`}
       >
         <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(90deg,#00FFB3,#00C8FF)' }}/>
@@ -219,7 +225,11 @@ function WriteValueCard({ card, onWrite, canCommand }: { card: Card; onWrite: (i
         </div>
         <p className="text-[9px] md:text-[10px] text-ky-muted uppercase tracking-wider leading-tight">{card.variableName}</p>
         {card.mqttTopic && <p className="text-[8px] text-ky-muted/40 font-mono mt-0.5 truncate">⬡ {card.mqttTopic}</p>}
-        {canCommand && <p className="text-[8px] md:text-[9px] text-ky-muted/50 mt-1">Clique para escrever</p>}
+        {canCommand && (
+          <p className={`text-[8px] md:text-[9px] mt-1 ${mqttConnected ? 'text-ky-muted/50' : 'text-yellow-500/70'}`}>
+            {mqttConnected ? 'Clique para escrever' : '⚠ MQTT desconectado'}
+          </p>
+        )}
       </div>
       {showModal && (
         <WriteValueModal
@@ -272,16 +282,24 @@ export default function DashboardPage() {
   }, [cards])
 
   const handleMqttMessage = useCallback((cardId: string, rawValue: string) => {
-    const parsed = parseFloat(rawValue)
-    const value  = isNaN(parsed) ? 0 : parsed
+    const card = cardsRef.current.find(c => c.id === cardId)
+    if (!card) return
+
+    // Cards de Leitura Estado (ON/OFF) tratam o payload como booleano (1=Ligado/0=Desligado),
+    // aceitando também "true/false" e "on/off" — os demais tipos leem o número cru.
+    const isEstado = card.type === 'leitura_estado'
+    const parsed   = parseFloat(rawValue)
+    const value    = isEstado ? parseBooleanState(rawValue) : (isNaN(parsed) ? 0 : parsed)
+
     setCards(prev => prev.map(c => c.id === cardId ? { ...c, value } : c))
-    if (!isNaN(parsed)) {
-      const card = cardsRef.current.find(c => c.id === cardId && (c.type === 'leitura' || c.type === 'leitura_estado'))
-      if (card) {
+
+    if (card.type === 'leitura' || card.type === 'leitura_estado') {
+      const loggedValue = isEstado ? value : parsed
+      if (!isNaN(loggedValue)) {
         fetch('/api/leituras', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ cardId, value: parsed, unit: card.unit }),
+          body:    JSON.stringify({ cardId, value: loggedValue, unit: card.unit }),
         }).catch(console.error)
       }
     }
@@ -346,11 +364,11 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
               {cards.map(card =>
                 card.type === 'comando'
-                  ? <CommandCard key={card.id} card={card} onToggle={handleToggle} canCommand={canCommand}/>
+                  ? <CommandCard key={card.id} card={card} onToggle={handleToggle} canCommand={canCommand} mqttConnected={mqttConnected}/>
                   : card.type === 'leitura_estado'
                   ? <EstadoCard key={card.id} card={card}/>
                   : card.type === 'escrita_valor'
-                  ? <WriteValueCard key={card.id} card={card} onWrite={handleWriteValue} canCommand={canCommand}/>
+                  ? <WriteValueCard key={card.id} card={card} onWrite={handleWriteValue} canCommand={canCommand} mqttConnected={mqttConnected}/>
                   : <VariableCard key={card.id} card={card} mqttConnected={mqttConnected}/>
               )}
             </div>

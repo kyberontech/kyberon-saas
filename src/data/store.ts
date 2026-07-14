@@ -41,6 +41,17 @@ export type User = {
   tenantName: string
 }
 
+// ── Interpretação de estado booleano (cards Leitura Estado ON/OFF) ────────────
+// Aceita não só "1"/"0" mas variações comuns que um CLP pode publicar
+// (true/false, on/off, ligado/desligado) para não depender do payload exato.
+export function parseBooleanState(raw: string): 0 | 1 {
+  const s = raw.trim().toLowerCase()
+  if (s === '1' || s === 'true' || s === 'on' || s === 'ligado')  return 1
+  if (s === '0' || s === 'false' || s === 'off' || s === 'desligado') return 0
+  const n = parseFloat(raw)
+  return !isNaN(n) && n !== 0 ? 1 : 0
+}
+
 // ── Utilitários de alarme (usados no Dashboard em tempo real) ─────────────────
 
 export function isInAlarm(card: Card): boolean {
