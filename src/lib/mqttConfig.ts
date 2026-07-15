@@ -45,15 +45,18 @@ export const MQTT_DEFAULT_QOS: 0 | 1 | 2 = 1
 export const MQTT_PUBLISH_QOS: 0 | 1 | 2 = 1
 
 // ── Payload publicado para cards de Comando (ON/OFF) ──────────────
-//  Usado apenas quando MQTT_COMMAND_PAYLOAD_FORMAT = 'text'
-export const MQTT_COMMAND_PAYLOAD_ON  = '1'
-export const MQTT_COMMAND_PAYLOAD_OFF = '0'
+//  Usado quando MQTT_COMMAND_PAYLOAD_FORMAT = 'text'.
+//  Confirmado por captura ao vivo: os blocos MQTT nativos da TProg
+//  (MQTT_SUBS_BOOL / MQTT_PUB_BOOL) usam a palavra "true"/"false" em
+//  texto minúsculo, não "1"/"0" nem byte binário cru.
+export const MQTT_COMMAND_PAYLOAD_ON  = 'true'
+export const MQTT_COMMAND_PAYLOAD_OFF = 'false'
 
 // ── Formato do payload para cards de Comando (ON/OFF) ──────────────
-//  'binary' = envia 1 byte cru (0x01/0x00) — formato esperado por blocos MQTT
-//             nativos de CLP (ex: MQTT_SUBS_BOOL da TProg), que interpretam o
-//             payload como boolean binário, não como texto ASCII.
-//  'text'   = envia o texto ASCII definido acima (ex: "1"/"0")
+//  'text'   = envia o texto definido acima (ex: "true"/"false") — formato da TProg.
+//  'binary' = envia 1 byte cru (0x01/0x00) — formato usado por outras
+//             plataformas de CLP com blocos MQTT nativos.
 //  Se o bloco do CLP mostrar STATE=inscrito/dados recebidos mas o VALUE nunca
-//  atualizar, o payload provavelmente está no formato errado — troque aqui.
-export const MQTT_COMMAND_PAYLOAD_FORMAT: 'binary' | 'text' = 'binary'
+//  atualizar, capture o que o próprio CLP publica (MQTT_PUB_BOOL) num tópico
+//  de teste para descobrir o formato exato e ajustar aqui.
+export const MQTT_COMMAND_PAYLOAD_FORMAT: 'binary' | 'text' = 'text'
