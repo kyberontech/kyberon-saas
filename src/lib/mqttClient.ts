@@ -15,6 +15,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import mqtt, { type MqttClient, type IClientOptions } from 'mqtt'
+import { Buffer } from 'buffer'
 
 import {
   MQTT_BROKER_URL,
@@ -28,6 +29,7 @@ import {
   MQTT_PUBLISH_QOS,
   MQTT_COMMAND_PAYLOAD_ON,
   MQTT_COMMAND_PAYLOAD_OFF,
+  MQTT_COMMAND_PAYLOAD_FORMAT,
 } from './mqttConfig'
 
 import { type Card } from '@/data/store'
@@ -127,7 +129,11 @@ export function useMqtt(
 
     // ── Recebimento de mensagens ───────────────────────────────
     client.on('message', (topic: string, payload: Buffer) => {
-      const rawValue = payload.toString()
+      // Alguns CLPs publicam boolean como 1 byte binário cru (0x00/0x01) em vez
+      // de texto ASCII — normaliza para "0"/"1" antes de repassar adiante.
+      const rawValue = (payload.length === 1 && (payload[0] === 0 || payload[0] === 1))
+        ? String(payload[0])
+        : payload.toString()
 
       // Encontra o card cujo tópico bate com o tópico recebido
       const card = cardsRef.current.find(c => c.mqttTopic === topic)
@@ -167,12 +173,16 @@ export function useMqtt(
       return
     }
 
-    const payload = nextState ? MQTT_COMMAND_PAYLOAD_ON : MQTT_COMMAND_PAYLOAD_OFF
+    // 'binary' → 1 byte cru (0x01/0x00), formato esperado por blocos MQTT nativos
+    // de CLP (ex: MQTT_SUBS_BOOL). 'text' → string ASCII configurável em mqttConfig.ts.
+    const payload = MQTT_COMMAND_PAYLOAD_FORMAT === 'binary'
+      ? Buffer.from([nextState ? 1 : 0])
+      : (nextState ? MQTT_COMMAND_PAYLOAD_ON : MQTT_COMMAND_PAYLOAD_OFF)
     client.publish(card.mqttTopic, payload, { qos: MQTT_PUBLISH_QOS }, (err) => {
       if (err) {
         console.error('[MQTT] Erro ao publicar:', err.message)
       } else {
-        console.log(`[MQTT] Publicado → ${card.mqttTopic}: "${payload}"`)
+        console.log(`[MQTT] Publicado → ${card.mqttTopic}: "${nextState ? 1 : 0}" (${MQTT_COMMAND_PAYLOAD_FORMAT})`)
       }
     })
   }, [])

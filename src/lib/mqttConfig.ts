@@ -45,6 +45,15 @@ export const MQTT_DEFAULT_QOS: 0 | 1 | 2 = 1
 export const MQTT_PUBLISH_QOS: 0 | 1 | 2 = 1
 
 // ── Payload publicado para cards de Comando (ON/OFF) ──────────────
-//  Altere para os valores que o seu CLP espera receber
+//  Usado apenas quando MQTT_COMMAND_PAYLOAD_FORMAT = 'text'
 export const MQTT_COMMAND_PAYLOAD_ON  = '1'
 export const MQTT_COMMAND_PAYLOAD_OFF = '0'
+
+// ── Formato do payload para cards de Comando (ON/OFF) ──────────────
+//  'binary' = envia 1 byte cru (0x01/0x00) — formato esperado por blocos MQTT
+//             nativos de CLP (ex: MQTT_SUBS_BOOL da TProg), que interpretam o
+//             payload como boolean binário, não como texto ASCII.
+//  'text'   = envia o texto ASCII definido acima (ex: "1"/"0")
+//  Se o bloco do CLP mostrar STATE=inscrito/dados recebidos mas o VALUE nunca
+//  atualizar, o payload provavelmente está no formato errado — troque aqui.
+export const MQTT_COMMAND_PAYLOAD_FORMAT: 'binary' | 'text' = 'binary'
