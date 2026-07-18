@@ -33,6 +33,7 @@ import {
 } from './mqttConfig'
 
 import { type Card } from '@/data/store'
+import { normalizeMqttPayload } from './mqttPayload'
 
 // ── Tipos exportados ──────────────────────────────────────────────
 
@@ -129,11 +130,7 @@ export function useMqtt(
 
     // ── Recebimento de mensagens ───────────────────────────────
     client.on('message', (topic: string, payload: Buffer) => {
-      // Alguns CLPs publicam boolean como 1 byte binário cru (0x00/0x01) em vez
-      // de texto ASCII — normaliza para "0"/"1" antes de repassar adiante.
-      const rawValue = (payload.length === 1 && (payload[0] === 0 || payload[0] === 1))
-        ? String(payload[0])
-        : payload.toString()
+      const rawValue = normalizeMqttPayload(payload)
 
       // Encontra o card cujo tópico bate com o tópico recebido
       const card = cardsRef.current.find(c => c.mqttTopic === topic)

@@ -287,22 +287,13 @@ export default function DashboardPage() {
 
     // Cards de Leitura Estado (ON/OFF) tratam o payload como booleano (1=Ligado/0=Desligado),
     // aceitando também "true/false" e "on/off" — os demais tipos leem o número cru.
+    // O histórico (tabela Reading) é gravado pelo worker server-side (mqttServerWorker.ts),
+    // não aqui — evita duplicar leituras quando há múltiplas abas/usuários com o dashboard aberto.
     const isEstado = card.type === 'leitura_estado'
     const parsed   = parseFloat(rawValue)
     const value    = isEstado ? parseBooleanState(rawValue) : (isNaN(parsed) ? 0 : parsed)
 
     setCards(prev => prev.map(c => c.id === cardId ? { ...c, value } : c))
-
-    if (card.type === 'leitura' || card.type === 'leitura_estado') {
-      const loggedValue = isEstado ? value : parsed
-      if (!isNaN(loggedValue)) {
-        fetch('/api/leituras', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ cardId, value: loggedValue, unit: card.unit }),
-        }).catch(console.error)
-      }
-    }
   }, [])
 
   const { status: mqttStatus, publishCommand, publishValue } = useMqtt(cards, handleMqttMessage)

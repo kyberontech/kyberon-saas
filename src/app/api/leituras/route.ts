@@ -81,26 +81,3 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(result)
 }
-
-// POST /api/leituras — salva uma leitura (chamado pelo dashboard ao receber MQTT)
-export async function POST(req: NextRequest) {
-  const auth = await requireSession()
-  if (auth instanceof NextResponse) return auth
-
-  const { cardId, value, unit } = await req.json()
-
-  if (!cardId || value === undefined || value === null) {
-    return NextResponse.json({ error: 'cardId e value são obrigatórios' }, { status: 400 })
-  }
-
-  await prisma.reading.create({
-    data: {
-      cardId,
-      value:    Number(value),
-      unit:     String(unit ?? ''),
-      tenantId: auth.user.tenantId,
-    },
-  })
-
-  return NextResponse.json({ ok: true })
-}
