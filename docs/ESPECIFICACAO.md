@@ -1,6 +1,6 @@
 # Kyberon SaaS — Especificação Técnica do Produto
 
-> Documento gerado a partir de análise do código-fonte e da infraestrutura em produção (VPS Hostinger, `72.60.240.153`, gerenciada via EasyPanel em `painel.devsystem.cloud`). Última atualização: 2026-07-11 (seção 3.1 revisada com a matriz de permissões e as novas ações de exclusão definitiva de usuários/grupos).
+> Documento gerado a partir de análise do código-fonte e da infraestrutura em produção (VPS Hostinger, `72.60.240.153`, gerenciada via EasyPanel em `painel.devsystem.cloud`). Última atualização: 2026-07-17 (seção 2.3 revisada — persistência de leituras migrada para worker server-side, ver commit `d97e165`).
 
 ---
 
@@ -50,12 +50,14 @@ A VPS também hospeda **outros projetos não relacionados** (n8n, um Postgres/Re
 
 ### 2.3 Fluxo de dados MQTT (ponto crítico de arquitetura)
 
-O MQTT é consumido **inteiramente no navegador**, não há processo de backend dedicado escutando o broker:
+> **Atualizado em 2026-07-17**: a persistência de leituras deixou de depender do navegador. Um worker server-side (`src/lib/mqttServerWorker.ts`) agora assina o broker diretamente e grava o histórico, independente de haver algum usuário com o dashboard aberto. Ver detalhes no final desta seção.
+
+O MQTT é consumido em **dois pontos**, um no navegador (visualização em tempo real) e outro no processo do servidor Next.js (persistência de histórico):
 
 1. O CLP conecta direto no broker EMQX (`mqtt://VPS:1883`, sem TLS, sem autenticação) e publica valores em um tópico (ex: `planta/sensor1/temperatura`).
-2. O navegador do usuário logado, ao abrir o Dashboard, conecta via WebSocket (`wss://mqtt.devsystem.cloud/mqtt`) e assina os tópicos configurados nos **Cards** daquele tenant.
-3. Ao receber uma mensagem, o hook `useMqtt` (`src/lib/mqttClient.ts`) atualiza o card na tela **e** faz `POST /api/leituras`, que grava um registro `Reading` no Postgres associado ao `tenantId` do usuário logado.
-4. **Consequência importante**: se nenhum usuário daquele tenant estiver com o dashboard aberto no navegador no momento, a leitura chega ao broker mas **não é persistida em lugar nenhum**. Não há fila, buffer ou listener de backend.
+2. O navegador do usuário logado, ao abrir o Dashboard, conecta via WebSocket (`wss://mqtt.devsystem.cloud/mqtt`) e assina os tópicos configurados nos **Cards** daquele tenant. O hook `useMqtt` (`src/lib/mqttClient.ts`) apenas atualiza o card na tela — não grava mais nada no banco.
+3. Independentemente de qualquer navegador aberto, o worker `startMqttHistoryWorker()` (`src/lib/mqttServerWorker.ts`) roda no processo do servidor, iniciado uma única vez no boot via o hook `register()` de `src/instrumentation.ts` (requer `experimental.instrumentationHook: true` em `next.config.js`). Ele carrega do Postgres todos os `Card` do tipo `leitura`/`leitura_estado` com `mqttTopic` preenchido, assina esses tópicos direto no broker e, a cada mensagem, grava um `Reading` via Prisma — recarregando a lista de assinaturas a cada 30s para acompanhar Cards criados/editados.
+4. **Consequência**: a leitura é persistida assim que chega ao broker, mesmo sem nenhum usuário do tenant com o dashboard aberto. O ponto crítico anterior (item 5 da seção de segurança) está resolvido — o que permanece em aberto é a **confiabilidade do próprio broker/infra** (sem auth, sem TLS — ver seção 5).
 
 ---
 
@@ -135,7 +137,7 @@ Nível mais simples, vinculado a um `tenantId`.
 
 - `GET/POST /api/cards` — lista / substitui todos os cards do tenant
 - `PATCH /api/cards/[id]/command` — atualiza estado de um comando
-- `GET/POST /api/leituras` — histórico e gravação de leitura (chamado pelo navegador ao receber MQTT)
+- `GET /api/leituras` — histórico de leituras para os gráficos de `/relatorios` (a gravação não é mais feita via API — ver worker server-side, seção 2.3)
 - `GET/POST /api/alarmes`, `POST /api/alarmes/[id]/ack` — gestão de alarmes
 - `GET/POST /api/usuarios`, `PUT /api/usuarios/[id]` (editar/ativar-desativar), `DELETE /api/usuarios/[id]` (exclusão definitiva) — gestão de usuários do tenant (admin)
 - `GET/POST/DELETE /api/admin/grupos`, `/api/admin/grupos/[id]` (`PUT` ativar-desativar, `DELETE` exclusão definitiva), rotas aninhadas `/usuarios` (`PUT`/`DELETE`) — gestão de tenants e seus usuários (super admin)
@@ -161,8 +163,8 @@ Todas as rotas usam `requireSession()` (NextAuth) e escopam consultas por `tenan
 
 ### 🟠 Alto
 
-5. **Persistência dependente de navegador aberto** — Não há processo de backend assinando o MQTT continuamente. Se ninguém do tenant estiver com o dashboard aberto, leituras dos CLPs se perdem silenciosamente (sem log, sem alerta). Isso também significa que **alarmes não disparam** se não houver navegador aberto monitorando.
-6. **Sem verificação de posse de `cardId` em `POST /api/leituras`** (`src/app/api/leituras/route.ts:90-103`) — a rota grava a `Reading` com o `tenantId` da sessão, mas não confirma que o `cardId` informado realmente pertence a esse tenant. Um usuário autenticado poderia gravar leituras associadas a um `cardId` arbitrário (inclusive de outro tenant, embora o registro fique só sob o próprio `tenantId`), poluindo históricos/gráficos.
+5. ~~**Persistência dependente de navegador aberto**~~ — **Resolvido em 2026-07-17**: `src/lib/mqttServerWorker.ts`, iniciado via `src/instrumentation.ts`, assina o broker diretamente do processo do servidor e persiste leituras independente de navegador aberto (ver seção 2.3). Continua valendo a ressalva de que **alarmes** ainda não têm um mecanismo de disparo server-side equivalente — o worker atual só grava `Reading`, não avalia `alarmMax/Min` nem cria `AlarmEvent`.
+6. ~~**Sem verificação de posse de `cardId` em `POST /api/leituras`**~~ — **Resolvido em 2026-07-17** como efeito colateral do item 5: a rota `POST /api/leituras` foi removida. A gravação agora é feita pelo worker server-side, que obtém o `cardId`/`tenantId` a partir da própria consulta ao banco (`prisma.card.findMany`), não de input do cliente — não há mais superfície para um usuário forjar `cardId` de outro tenant por essa via.
 7. **Ambiente de VPS compartilhado** — o mesmo host Docker roda projetos não relacionados (n8n, bancos de outros clientes). Um container comprometido (ex: via a falha nº1/2 do EMQX) amplia a superfície de ataque para os demais serviços na mesma rede Docker.
 
 ### 🟡 Médio
@@ -176,9 +178,10 @@ Todas as rotas usam `requireSession()` (NextAuth) e escopam consultas por `tenan
 ### Recomendações de melhoria (não apenas segurança)
 
 - **Adicionar autenticação no EMQX** (usuário/senha por dispositivo, ou binding client_id↔token) e restringir as portas 1883/8883/18083 para não ficarem expostas em `0.0.0.0` (usar firewall ou bind em interface interna, deixando só o `mqtt-proxy` público).
-- **Criar um serviço de backend dedicado** (worker Node.js ou usar as regras de "rule engine" do próprio EMQX) para persistir leituras independente de navegador aberto — resolve os pontos 5 e melhora a confiabilidade histórica/alarmes.
-- **Validar `cardId` contra `tenantId`** em `/api/leituras` antes de gravar.
-- **Remover o fallback hardcoded do `NEXTAUTH_SECRET`** e garantir a variável de ambiente sempre configurada via secret manager do EasyPanel.
+- ~~Criar um serviço de backend dedicado para persistir leituras independente de navegador aberto~~ — feito em 2026-07-17 (`src/lib/mqttServerWorker.ts`).
+- **Fazer o worker também avaliar alarmes** (`alarmMax`/`alarmMin` → `AlarmEvent`), hoje ele só grava `Reading` — sem isso, alarmes continuam dependendo de um navegador aberto para disparar.
+- ~~Validar `cardId` contra `tenantId` em `/api/leituras` antes de gravar~~ — não se aplica mais, a rota `POST` foi removida.
+- ~~Remover o fallback hardcoded do `NEXTAUTH_SECRET`~~ — feito em 2026-07-13.
 - **Adicionar testes automatizados** (não há suíte de testes identificada no repositório).
 - Avaliar uso de **client certificates (mTLS)** ou tokens por dispositivo para autenticar CLPs de forma mais robusta do que usuário/senha estático.
 
