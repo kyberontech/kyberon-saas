@@ -13,7 +13,7 @@
 
 'use client'
 
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useCallback, useState, type MutableRefObject } from 'react'
 import mqtt, { type MqttClient, type IClientOptions } from 'mqtt'
 import { Buffer } from 'buffer'
 
@@ -71,6 +71,11 @@ export function useMqtt(
   const clientRef  = useRef<MqttClient | null>(null)
   const [status, setStatus] = useState<MqttStatus>('disconnected')
 
+  // Tópicos atualmente assinados — usado para reassinar só o que mudou
+  // (evita reenviar SUBSCRIBE de tudo a cada mensagem MQTT recebida, o que
+  // fazia o broker reenviar mensagens retidas e "piscar" cards de leitura)
+  const subscribedTopicsRef = useRef<Set<string>>(new Set())
+
   // Mantemos a referência do callback atualizada sem recriar o efeito
   const callbackRef = useRef(onValueReceived)
   useEffect(() => { callbackRef.current = onValueReceived }, [onValueReceived])
@@ -104,8 +109,8 @@ export function useMqtt(
       console.log('[MQTT] Conectado ao broker:', MQTT_BROKER_URL)
       setStatus('connected')
 
-      // Assina todos os tópicos com mqttTopic preenchido
-      subscribeAll(client, cardsRef.current)
+      // Assina os tópicos com mqttTopic preenchido
+      syncSubscriptions(client, cardsRef.current, subscribedTopicsRef)
     })
 
     client.on('reconnect', () => {
@@ -145,17 +150,22 @@ export function useMqtt(
       console.log('[MQTT] Encerrando conexão')
       client.end(true)
       clientRef.current = null
+      subscribedTopicsRef.current = new Set()
       setStatus('disconnected')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Conecta uma única vez; os cards são lidos via ref
 
   // ── Re-assina quando a lista de cards muda ─────────────────────
+  // Só assina tópicos novos e cancela os removidos (diff), em vez de
+  // reassinar tudo — reassinar um tópico já ativo faz o broker reenviar
+  // sua última mensagem retida, o que zerava cards de Leitura Estado
+  // logo após um comando bem-sucedido.
   useEffect(() => {
     const client = clientRef.current
     if (!client || status !== 'connected') return
 
-    subscribeAll(client, cards)
+    syncSubscriptions(client, cards, subscribedTopicsRef)
   }, [cards, status])
 
   // ── Publicar comando ON/OFF ────────────────────────────────────
@@ -211,15 +221,19 @@ export function useMqtt(
 
 // ── Utilitário interno ────────────────────────────────────────────
 
-/** Assina todos os tópicos válidos da lista de cards */
-function subscribeAll(client: MqttClient, cards: Card[]) {
-  const topics = cards
-    .map(c => c.mqttTopic?.trim())
-    .filter((t): t is string => !!t)
+/** Assina tópicos novos e cancela os que saíram da lista de cards (diff) */
+function syncSubscriptions(
+  client: MqttClient,
+  cards: Card[],
+  subscribedTopicsRef: MutableRefObject<Set<string>>
+) {
+  const nextTopics = new Set(
+    cards.map(c => c.mqttTopic?.trim()).filter((t): t is string => !!t)
+  )
+  const prevTopics = subscribedTopicsRef.current
 
-  if (topics.length === 0) return
-
-  topics.forEach(topic => {
+  nextTopics.forEach(topic => {
+    if (prevTopics.has(topic)) return
     client.subscribe(topic, { qos: MQTT_DEFAULT_QOS }, (err) => {
       if (err) {
         console.error(`[MQTT] Erro ao assinar tópico "${topic}":`, err.message)
@@ -228,4 +242,12 @@ function subscribeAll(client: MqttClient, cards: Card[]) {
       }
     })
   })
+
+  prevTopics.forEach(topic => {
+    if (nextTopics.has(topic)) return
+    client.unsubscribe(topic)
+    console.log(`[MQTT] Cancelado: ${topic}`)
+  })
+
+  subscribedTopicsRef.current = nextTopics
 }

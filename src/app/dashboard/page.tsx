@@ -1,14 +1,15 @@
 'use client'
 // src/app/dashboard/page.tsx — dashboard principal com MQTT e cards por tenant
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import Sidebar from '@/components/Sidebar'
 import {
   Thermometer, Gauge, Droplets, Zap, Activity,
   Cpu, Power, PowerOff, Wind, Sun, Waves, Wifi, WifiOff, RefreshCw, AlertTriangle, PenLine,
 } from 'lucide-react'
-import { isInAlarm, alarmMessage, parseBooleanState, type Card } from '@/data/store'
-import { useMqtt, type MqttStatus } from '@/lib/mqttClient'
+import { isInAlarm, alarmMessage, type Card } from '@/data/store'
+import { useCardsMqtt } from '@/lib/CardsMqttContext'
+import { type MqttStatus } from '@/lib/mqttClient'
 
 const ICON_MAP: Record<string, React.ElementType> = {
   thermometer: Thermometer, gauge: Gauge, droplets: Droplets,
@@ -246,21 +247,14 @@ function WriteValueCard({ card, onWrite, canCommand, mqttConnected }: { card: Ca
 
 export default function DashboardPage() {
   const { data: session } = useSession()
-  const [cards, setCards]   = useState<Card[]>([])
   const sentAlarms = useRef<Set<string>>(new Set())
-  const cardsRef   = useRef<Card[]>([])
-  useEffect(() => { cardsRef.current = cards }, [cards])
 
   const role       = session?.user?.role ?? 'USUARIO'
   const canCommand = role === 'ADMINISTRADOR' || role === 'SUPERVISOR'
 
-  // Carrega cards do tenant via API
-  useEffect(() => {
-    fetch('/api/cards')
-      .then(r => r.ok ? r.json() : [])
-      .then(data => setCards(Array.isArray(data) ? data : []))
-      .catch(console.error)
-  }, [])
+  // Cards + conexão MQTT vêm do context global (Providers.tsx) — fica vivo
+  // entre navegações, então voltar ao dashboard não reconecta nem zera valores
+  const { cards, mqttStatus, handleToggle, handleWriteValue } = useCardsMqtt()
 
   // Sincroniza alarmes com a API (fire-and-forget ao detectar alarme ativo)
   useEffect(() => {
@@ -280,52 +274,6 @@ export default function DashboardPage() {
       if (!isInAlarm(card)) sentAlarms.current.delete(card.id)
     })
   }, [cards])
-
-  const handleMqttMessage = useCallback((cardId: string, rawValue: string) => {
-    const card = cardsRef.current.find(c => c.id === cardId)
-    if (!card) return
-
-    // Cards de Leitura Estado (ON/OFF) tratam o payload como booleano (1=Ligado/0=Desligado),
-    // aceitando também "true/false" e "on/off" — os demais tipos leem o número cru.
-    // O histórico (tabela Reading) é gravado pelo worker server-side (mqttServerWorker.ts),
-    // não aqui — evita duplicar leituras quando há múltiplas abas/usuários com o dashboard aberto.
-    const isEstado = card.type === 'leitura_estado'
-    const parsed   = parseFloat(rawValue)
-    const value    = isEstado ? parseBooleanState(rawValue) : (isNaN(parsed) ? 0 : parsed)
-
-    setCards(prev => prev.map(c => c.id === cardId ? { ...c, value } : c))
-  }, [])
-
-  const { status: mqttStatus, publishCommand, publishValue } = useMqtt(cards, handleMqttMessage)
-
-  const handleToggle = useCallback((cardId: string) => {
-    setCards(prev => {
-      const card = prev.find(c => c.id === cardId)
-      if (!card) return prev
-      const nextState = !card.commandState
-      publishCommand(card, nextState)
-      fetch(`/api/cards/${cardId}/command`, {
-        method:  'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ commandState: nextState }),
-      }).catch(console.error)
-      return prev.map(c => c.id === cardId ? { ...c, commandState: nextState } : c)
-    })
-  }, [publishCommand])
-
-  const handleWriteValue = useCallback((cardId: string, value: number) => {
-    setCards(prev => {
-      const card = prev.find(c => c.id === cardId)
-      if (!card) return prev
-      publishValue(card, value)
-      fetch(`/api/cards/${cardId}/write`, {
-        method:  'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ writeValue: value }),
-      }).catch(console.error)
-      return prev.map(c => c.id === cardId ? { ...c, writeValue: value } : c)
-    })
-  }, [publishValue])
 
   const alarmsCount   = cards.filter(isInAlarm).length
   const mqttConnected = mqttStatus === 'connected'

@@ -1,7 +1,13 @@
 'use client'
-// src/components/Providers.tsx — SessionProvider do NextAuth para o client side
+// src/components/Providers.tsx — SessionProvider do NextAuth + conexão MQTT
+// compartilhada (CardsMqttProvider) para o client side
 import { SessionProvider } from 'next-auth/react'
+import { CardsMqttProvider } from '@/lib/CardsMqttContext'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>
+  return (
+    <SessionProvider>
+      <CardsMqttProvider>{children}</CardsMqttProvider>
+    </SessionProvider>
+  )
 }

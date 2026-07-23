@@ -13,8 +13,19 @@ export async function GET() {
     orderBy: { sortOrder: 'asc' },
   })
 
-  // Adiciona campo `value: 0` (valor runtime populado pelo MQTT no cliente)
-  return NextResponse.json(cards.map(c => ({ ...c, value: 0 })))
+  // Preenche `value` com a última leitura conhecida (tabela Reading, gravada
+  // pelo worker MQTT server-side) em vez de 0 fixo — evita o card "zerar" ao
+  // reabrir o dashboard, antes de chegar uma mensagem MQTT nova.
+  const latestReadings = await prisma.reading.findMany({
+    where:    { tenantId: auth.user.tenantId },
+    orderBy:  { timestamp: 'desc' },
+    distinct: ['cardId'],
+  })
+  const latestValueByCardId = new Map(latestReadings.map(r => [r.cardId, r.value]))
+
+  return NextResponse.json(
+    cards.map(c => ({ ...c, value: latestValueByCardId.get(c.id) ?? 0 }))
+  )
 }
 
 // POST /api/cards — substitui todos os cards do tenant (admin/supervisor)

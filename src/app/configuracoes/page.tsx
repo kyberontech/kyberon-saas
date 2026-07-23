@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import Sidebar from '@/components/Sidebar'
 import { Settings, Plus, Trash2, Save } from 'lucide-react'
 import { type Card, type CardType } from '@/data/store'
+import { useCardsMqtt } from '@/lib/CardsMqttContext'
 
 const ICONES_DISPONIVEIS = [
   { value: 'thermometer', label: '🌡  Temperatura'        },
@@ -163,6 +164,7 @@ function CardRow({ card, onChange, onDelete }: { card: Card; onChange: (c: Card)
 export default function ConfiguracoesPage() {
   const { data: session } = useSession()
   const router = useRouter()
+  const { refetchCards } = useCardsMqtt()
   const [cards, setCards] = useState<Card[]>([])
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -194,6 +196,7 @@ export default function ConfiguracoesPage() {
       })
       if (!res.ok) throw new Error('Erro ao salvar')
       setSaved(true)
+      refetchCards()
       setTimeout(() => setSaved(false), 2000)
     } catch {
       alert('Erro ao salvar cards. Tente novamente.')
